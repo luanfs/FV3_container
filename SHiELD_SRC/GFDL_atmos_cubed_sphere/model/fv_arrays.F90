@@ -320,6 +320,9 @@ end type duogrid_type
      real(kind=R_GRID), allocatable, dimension(:,:) ::  metricterm_b
      real(kind=R_GRID), allocatable, dimension(:,:) :: rmetricterm_b
 
+     real(kind=R_GRID), allocatable, dimension(:,:) ::  metricterm_c
+     real(kind=R_GRID), allocatable, dimension(:,:) ::  metricterm_d
+
 
      ! norm of tangent vectors
      real(kind=R_GRID), allocatable, dimension(:,:) ::  norm_tgx_b
@@ -2027,6 +2030,9 @@ contains
     allocate ( Atm%gridstruct%rmetricterm_b(isd_2d:ied_2d+1,  jsd_2d:jed_2d+1) )
 
 
+    allocate ( Atm%gridstruct% metricterm_c(isd_2d:ied_2d+1,  jsd_2d:jed_2d  ) )
+    allocate ( Atm%gridstruct% metricterm_d(isd_2d:ied_2d  ,  jsd_2d:jed_2d+1) )
+
     allocate ( Atm%gridstruct% norm_tgx_b(isd_2d:ied_2d+1,  jsd_2d:jed_2d+1) )
     allocate ( Atm%gridstruct% norm_tgy_b(isd_2d:ied_2d+1,  jsd_2d:jed_2d+1) )
     allocate ( Atm%gridstruct% norm_tgx_c(isd_2d:ied_2d+1,  jsd_2d:jed_2d  ) )
@@ -2352,6 +2358,8 @@ contains
     deallocate ( Atm%gridstruct% metricterm_b )
     deallocate ( Atm%gridstruct%rmetricterm_b )
 
+    deallocate ( Atm%gridstruct% metricterm_c )
+    deallocate ( Atm%gridstruct% metricterm_d )
 
     deallocate ( Atm%gridstruct% norm_tgx_b)
     deallocate ( Atm%gridstruct% norm_tgx_c)

@@ -498,6 +498,7 @@ contains
     real, pointer, dimension(:,:) :: rarea, rarea_c
     real, pointer, dimension(:,:) :: rmt_a, mt_a
     real, pointer, dimension(:,:) :: rmt_b, mt_b
+    real, pointer, dimension(:,:) ::  mt_c, mt_d
     real, pointer, dimension(:,:) :: rdx, rdy, rdxc, rdyc, rdxa, rdya
 
     integer, pointer, dimension(:,:,:) ::  iinta, jinta, iintb, jintb
@@ -535,6 +536,8 @@ contains
 
     mt_a  => Atm%gridstruct% metricterm_a
     mt_b  => Atm%gridstruct% metricterm_b
+    mt_c  => Atm%gridstruct% metricterm_c
+    mt_d  => Atm%gridstruct% metricterm_d
 
     rmt_a => Atm%gridstruct%rmetricterm_a
     rmt_b => Atm%gridstruct%rmetricterm_b
@@ -1029,6 +1032,20 @@ if (.not. Atm%flagstruct%duogrid)             call mpp_update_domains( agrid, At
             do j = jsd, jed+1
                call metricterm(Atm%flagstruct%grid_type, line_b(i), line_b(j), mt_b(i,j), radius)
                rmt_b(i,j) = 1.d0/mt_b(i,j)
+            enddo
+         enddo
+
+         !C grid
+         do i = isd, ied+1
+            do j = jsd, jed
+               call metricterm(Atm%flagstruct%grid_type, line_b(i), line_a(j), mt_c(i,j), radius)
+            enddo
+         enddo
+
+         !D grid
+         do i = isd, ied
+            do j = jsd, jed+1
+               call metricterm(Atm%flagstruct%grid_type, line_a(i), line_b(j), mt_d(i,j), radius)
             enddo
          enddo
 

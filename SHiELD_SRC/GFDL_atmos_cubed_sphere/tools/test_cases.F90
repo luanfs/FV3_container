@@ -1776,6 +1776,56 @@
             initWindsCase=initWindsCase5
          endif
 
+      case(110)
+         Ubar = (2.0*pi*radius)/(12.0*86400.0)
+         gh0  = 2.94e4
+         phis = 0.0
+         do j=js,je
+            do i=is,ie
+               delp(i,j,1) = gh0 !- (radius*omega*Ubar + (Ubar*Ubar)/2.) * &
+                             !( -1.*cos(agrid(i  ,j  ,1))*cos(agrid(i  ,j  ,2))*sin(alpha) + &
+                             !      sin(agrid(i  ,j  ,2))*cos(alpha) ) ** 2.0
+ 
+            enddo
+         enddo
+         do j=js,je
+            do i=is,ie+1
+               p1(:) = grid(i  ,j ,1:2)
+               p2(:) = grid(i,j+1 ,1:2)
+               call mid_pt_sphere(p1, p2, p3)
+               call get_unit_vect2(p1, p2, e2)
+               call get_latlon_vector(p3, ex, ey)
+               !utmp = Ubar*cos(p3(2))
+               !vtmp = 0.d0
+               call compute_wind_NL2010(utmp, vtmp, p3(1), p3(2), 0.d0, 12.d0*86400d0, Ubar)
+               v(i,j,1) = utmp*inner_prod(e2,ex) + vtmp*inner_prod(e2,ey)
+            enddo
+         enddo
+         do j=js,je+1
+            do i=is,ie
+               p1(:) = grid(i,  j,1:2)
+               p2(:) = grid(i+1,j,1:2)
+               call mid_pt_sphere(p1, p2, p3)
+               call get_unit_vect2(p1, p2, e1)
+               call get_latlon_vector(p3, ex, ey)
+               !utmp = Ubar*cos(p3(2))
+               !vtmp = 0.d0
+               call compute_wind_NL2010(utmp, vtmp, p3(1), p3(2), 0.d0, 12.d0*86400d0, Ubar)
+               u(i,j,1) = utmp*inner_prod(e1,ex) + vtmp*inner_prod(e1,ey)
+            enddo
+         enddo
+
+         if (.not. gridstruct%dg%is_initialized) then
+           call mp_update_dwinds(u, v, npx, npy, npz, domain, bd)
+         else
+           call ext_vector(u, v, gridstruct%dg, bd, domain,gridstruct, flagstruct,0,1,1,0)
+         endif
+
+         call dtoa( u, v,ua,va,dx,dy,dxa,dya,dxc,dyc,npx,npy,ng,bd)
+         !call mpp_update_domains( ua, va, domain, gridtype=AGRID_PARAM)
+         call atoc(ua,va,uc,vc,dx,dy,dxa,dya,npx,npy,ng, gridstruct%bounded_domain, domain, bd, gridstruct, flagstruct)
+         initWindsCase=initWindsCase6
+
 
       case(6)
          Ubar = (2.0*pi*radius)/(12.0*86400.0)
@@ -9096,7 +9146,7 @@ subroutine compute_wind_NL2010(u, v, lat, lon, time, T, Ubar)
        lonp = lon-2.d0*pi*time/T
        u = Ubar*(dsin((lonp))**2)*(dsin(2.*lat))*(dcos(pi*time/T))+Ubar*dcos(lat)
        v = Ubar*(dsin(2*(lonp)))*(dcos(lat))*(dcos(pi*time/T))
-    else if (test_case==-6.or. test_case==-8) then
+    else if (test_case==-6.or. test_case==-8 .or. test_case==110) then
        u = -Ubar*(dsin((lon+pi)/2.d0)**2)*(dsin(2.d0*lat))*(dcos(lat)**2)*(dcos(pi*time/T))
        v = (Ubar/2.d0)*(dsin((lon+pi)))*(dcos(lat)**3)*(dcos(pi*time/T))
     endif
