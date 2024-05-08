@@ -1007,10 +1007,21 @@ endif
 
      if ( inline_q ) then
         do iq=1,nq
-           ! used in sw
-           call fv_tp_2d(q(isd,jsd,k,iq), crx_adv,cry_adv, npx, npy, hord_tr, gx, gy,  &
-                         xfx_adv,yfx_adv, gridstruct, bd, ra_x, ra_y, flagstruct%lim_fac, &
-                         mfx=fx, mfy=fy, mass=delp, nord=nord_t, damp_c=damp_t)
+         if(test_case>1) then
+            ! used in sw
+            call fv_tp_2d(q(isd,jsd,k,iq), crx_adv,cry_adv, npx, npy, hord_tr, gx, gy,  &
+                            xfx_adv, yfx_adv, gridstruct, bd, ra_x, ra_y, flagstruct%lim_fac, &
+                            mfx=fx, mfy=fy, mass=delp, nord=nord_t, damp_c=damp_t)
+         else
+            if(gridstruct%adv_scheme==1) then
+               call fv_tp_2d(q(isd,jsd,k,iq), crx_adv, cry_adv, npx, npy, hord_tr, gx, gy, &
+                           xfx_adv, yfx_adv, gridstruct, bd, ra_x, ra_y, flagstruct%lim_fac)
+            else if(gridstruct%adv_scheme==2) then
+               call fv_tp_2d(q(isd,jsd,k,iq), crx_dp2, cry_dp2, npx, npy, hord_tr, gx, gy, &
+                           xfx_dp2, yfx_dp2, gridstruct, bd, ra_x, ra_y, flagstruct%lim_fac, advscheme=gridstruct%adv_scheme)
+            endif
+         endif
+
 
         do j=js,je
            do i=is,ie+1
@@ -1207,12 +1218,20 @@ endif
            enddo
         enddo
 
+         if(test_case>1) then
            do j=js,je
               do i=is,ie
                  q(i,j,k,iq) = (q(i,j,k,iq)*wk(i,j) +               &
                          (gx(i,j)-gx(i+1,j)+gy(i,j)-gy(i,j+1))*rarea(i,j))/delp(i,j)
               enddo
            enddo
+         else
+           do j=js,je
+              do i=is,ie
+                 q(i,j,k,iq) = q(i,j,k,iq) + (gx(i,j)-gx(i+1,j)+gy(i,j)-gy(i,j+1))*rarea(i,j)
+              enddo
+           enddo
+         endif
         enddo
 !     if ( zvir>0.01 ) then
 !       do j=js,je
@@ -1237,8 +1256,6 @@ endif
 #endif
            enddo
         enddo
-        print*, 'before', minval(delp)/9.8d0, maxval(delp)/9.8d0
-        stop
      endif
 
  end subroutine d_sw2

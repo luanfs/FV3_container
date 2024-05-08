@@ -37,7 +37,7 @@ module dyn_core_mod
   use nh_core_mod,        only: Riem_Solver3, Riem_Solver_C, update_dz_c, update_dz_d, nh_bc
   use tp_core_mod,        only: copy_corners
   use fv_timing_mod,      only: timing_on, timing_off
-  use fv_diagnostics_mod, only: prt_maxmin, fv_time, prt_mxm, is_ideal_case
+  use fv_diagnostics_mod, only: prt_maxmin, fv_time, prt_mxm
   use fv_diag_column_mod, only: do_diag_debug_dyn, debug_column_dyn
 #ifdef ROT3
   use fv_update_phys_mod, only: update_dwinds_phys
@@ -352,14 +352,14 @@ contains
   do it=1,n_split
 !-----------------------------------------------------
 #ifdef SW_DYNAMICS
-      if (test_case==-5 .or. test_case==-6 .or. test_case==-8)then
+      if (test_case==-5 .or. test_case==-6 .or. test_case==-8 .or. test_case==-9)then
         ! wind at time t_n
          current_time = (time_total-bdt)+(it-1.0d0)*dt
-         call wind_NL2010(bd, uc_old, vc_old, flagstruct, gridstruct, domain,current_time)
+         call wind_NL2010(bd, uc_old, vc_old, u, v, flagstruct, gridstruct, domain,current_time)
  
         ! centered in time wind (t_n+dt/2) - for variable speed advection simulations when using RK2 scheme
          current_time = (time_total-bdt)+(it-0.5d0)*dt
-         call wind_NL2010(bd, uc, vc, flagstruct, gridstruct, domain,current_time)
+         call wind_NL2010(bd, uc, vc, u, v, flagstruct, gridstruct, domain,current_time)
 
       else if (test_case <= 1 ) then
          uc_old = uc
@@ -766,7 +766,7 @@ endif
 !$OMP                                  crx,cry,xfx,yfx,crx_dp2,cry_dp2,xfx_dp2,yfx_dp2,q_con,zvir,sphum,nq,q,dt,bd,rdt,iep1,jep1, &
 !$OMP                                  heat_source,allflux_x, allflux_y,rax,ray,utt,vtt, &
 !$OMP                                  ubb,vbb,ubbtemp,vbbtemp, &
-!$OMP                                  is_ideal_case,diss_est,radius,                 &
+!$OMP                                  diss_est,radius,                 &
 !$OMP                          nord_k, nord_w, nord_t, damp_w, damp_t, d2_divg,   &
 !$OMP                          d_con_k,kgb, hord_m, hord_v, hord_t, hord_p, wk, heat_s, diss_e, z_rat)
     do k=1,npz
@@ -806,7 +806,7 @@ endif
               if ( k==1 ) then
 ! Divergence damping:
                  nord_k(k)=0;
-                 if (is_ideal_case) then
+                 if (flagstruct%is_ideal_case) then
                     d2_divg(k) = max(flagstruct%d2_bg, flagstruct%d2_bg_k1)
                  else
                     d2_divg(k) = max(0.01, flagstruct%d2_bg, flagstruct%d2_bg_k1)
@@ -1006,7 +1006,7 @@ endif !if duo
 !$OMP                                  is,ie,js,je,isd,ied,jsd,jed,omga,delp,gridstruct,npx,npy,  &
 !$OMP                                  ng,zh,vt,ptc,pt,u,v,w,uc,vc,ua,va,divgd,mfx,mfy,cx,cy,     &
 !$OMP                                  crx,cry,xfx,yfx,crx_dp2,cry_dp2,xfx_dp2,yfx_dp2,q_con,zvir,sphum,nq,q,dt,bd,rdt,iep1,jep1, &
-!$OMP                                  heat_source, diss_est, is_ideal_case,allflux_x, allflux_y,rax,ray,utt,vtt, &
+!$OMP                                  heat_source, diss_est, allflux_x, allflux_y,rax,ray,utt,vtt, &
 !$OMP                                  kee,dw, wkk, ubb, vbb, ubbtemp, vbbtemp, vortfluxx, vortfluxy, &
 !$OMP                          nord_k, nord_w, nord_t, damp_w, damp_t, d2_divg,   &
 !$OMP                          d_con_k,kgb, hord_m, hord_v, hord_t, hord_p, wk, heat_s, diss_e, z_rat)

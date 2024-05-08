@@ -46,7 +46,7 @@
       use mpp_parameter_mod, only: AGRID_PARAM=>AGRID,CGRID_NE_PARAM=>CGRID_NE, &
                                    SCALAR_PAIR
       use gfdl_mp_mod,       only: mqs3d
-      use fv_diagnostics_mod, only: prt_maxmin, ppme, eqv_pot, qcly0, is_ideal_case
+      use fv_diagnostics_mod, only: prt_maxmin, ppme, eqv_pot, qcly0
       use mpp_mod,            only: mpp_pe, mpp_chksum, stdout
       use fv_arrays_mod,         only: fv_grid_type, fv_flags_type, fv_grid_bounds_type, R_GRID
       use tracer_manager_mod,    only: get_tracer_index
@@ -217,7 +217,7 @@
       integer,      intent(IN) :: ndims
       integer,      intent(IN) :: nregions
       logical,      intent(IN) :: bounded_domain
-      type(fv_flags_type), target, intent(IN) :: flagstruct
+      type(fv_flags_type), target, intent(INOUT) :: flagstruct
       type(fv_grid_type), intent(INOUT), target :: gridstruct
       type(domain2d), intent(INOUT) :: domain
       integer, intent(IN)  :: tile
@@ -546,8 +546,8 @@
          call atoc(ua,va,uc,vc,dx,dy,dxa,dya,npx,npy,ng, bounded_domain, domain, bd, gridstruct, flagstruct)
      elseif (defOnGrid==7) then
          call compute_conversion_matrices(bd, gridstruct)
-         if(test_case==-5 .or. test_case==-6 .or. test_case==-8) then 
-            call wind_NL2010(bd, uc, vc, flagstruct, gridstruct, domain, 0.d0)
+         if(test_case==-5 .or. test_case==-6 .or. test_case==-8 .or. test_case==-9) then 
+            call wind_NL2010(bd, uc, vc, u, v, flagstruct, gridstruct, domain, 0.d0)
          else 
             ! cgrid winds
             do i = is-1, ie+1+1
@@ -557,6 +557,7 @@
                   utmp =  Ubar*(DCOS(lat)*DCOS(alpha) + DSIN(lat)*DCOS(lon)*DSIN(alpha) )
                   vtmp = -Ubar * DSIN(lon)*DSIN(alpha)
                   uc(i,j) = c_l2contra(1,1,i,j)*utmp + c_l2contra(1,2,i,j)*vtmp
+                  v (i,j) = c_l2contra(2,1,i,j)*utmp + c_l2contra(2,2,i,j)*vtmp
                enddo
             enddo
 
@@ -568,6 +569,7 @@
                   utmp =  Ubar*(DCOS(lat)*DCOS(alpha) + DSIN(lat)*DCOS(lon)*DSIN(alpha) )
                   vtmp = -Ubar * DSIN(lon)*DSIN(alpha)
                   vc(i,j) = d_l2contra(2,1,i,j)*utmp + d_l2contra(2,2,i,j)*vtmp
+                  u (i,j) = d_l2contra(1,1,i,j)*utmp + d_l2contra(1,2,i,j)*vtmp
                enddo
             enddo
             if (.not. gridstruct%dg%is_initialized) then
@@ -644,7 +646,7 @@
       integer,      intent(IN) :: ks
 
       type(fv_grid_type), target :: gridstruct
-      type(fv_flags_type), target, intent(IN) :: flagstruct
+      type(fv_flags_type), target, intent(INOUT) :: flagstruct
 
       integer, intent(IN) :: npx_global
       integer, intent(IN), target :: tile_in
@@ -1422,6 +1424,7 @@
                   delp(i,j,1) = phis(i,j)
                endif
                delp(i,j,1) = delp(i,j,1)*grav
+               q(i,j,1,1) = 1.d0
             enddo
          enddo
          initWindsCase=initWindsCase7
@@ -1444,6 +1447,7 @@
                r = norm2(e2-e1)
                delp(i,j,1) = 0.1d0 + 0.9d0*(dexp(-10d0*r*r))
                delp(i,j,1) = delp(i,j,1)*grav
+               q(i,j,1,1) = 1.d0
             enddo
          enddo
          initWindsCase=initWindsCase7
@@ -1468,7 +1472,7 @@
          if(test_case==-5) then
             Ubar = (2.0*pi*radius)/(12.0*86400.0)
          else
-            Ubar = (0.5*pi*radius)/(12.0*86400.0)
+            Ubar = (2.0*pi*radius)/(12.0*86400.0)
          endif
          gh0  = 1.0
          phis = 0.1d0
@@ -1499,6 +1503,7 @@
                r = norm2(e2-e1)
                delp(i,j,1) = delp(i,j,1) + 0.9d0*(dexp(-5d0*r*r))
                delp(i,j,1) = delp(i,j,1)*grav
+               q(i,j,1,1) = 1.d0
             enddo
          enddo
          initWindsCase=initWindsCase7
@@ -4636,7 +4641,7 @@ endif
          endif
     !call mp_update_dwinds(u, v, npx, npy, npz, domain, bd)
 
-    is_ideal_case = .true.
+    flagstruct%is_ideal_case = .true.
 
     nullify(agrid)
     nullify(grid)
@@ -6577,7 +6582,7 @@ end subroutine terminator_tracers
 
         end select
 
-        is_ideal_case = .true.
+        flagstruct%is_ideal_case = .true.
 
         nullify(grid)
         nullify(agrid)
@@ -9057,14 +9062,18 @@ end subroutine terminator_tracers
  end subroutine sm1_edge
 
 
-   subroutine wind_NL2010(bd, uc, vc, flagstruct, gridstruct, domain, time)
+   subroutine wind_NL2010(bd, uc, vc, u, v, flagstruct, gridstruct, domain, time)
       !--------------------------------------------------
-      ! Compute the wind for TC -5, -6 and -7
+      ! Compute the wind for TC -5, -6 and -8 and -9
       ! Ref: Nair and Laurtizen 2010
       !--------------------------------------------------
       type(fv_grid_bounds_type), intent(IN) :: bd
       real ,      intent(INOUT) ::   uc(bd%isd:bd%ied+1,bd%jsd:bd%jed  )
       real ,      intent(INOUT) ::   vc(bd%isd:bd%ied  ,bd%jsd:bd%jed+1)
+
+      real ,      intent(INOUT) ::   u (bd%isd:bd%ied  ,bd%jsd:bd%jed+1)
+      real ,      intent(INOUT) ::   v (bd%isd:bd%ied+1,bd%jsd:bd%jed  )
+
       type(fv_flags_type), target, intent(IN) :: flagstruct
       type(fv_grid_type), intent(INOUT), target :: gridstruct
       type(domain2d), intent(INOUT) :: domain
@@ -9110,6 +9119,7 @@ end subroutine terminator_tracers
             lat = cgrid(i,j,2)
             call compute_wind_NL2010(utmp, vtmp, lat, lon, time, T, Ubar)
             uc(i,j) = gridstruct%c_l2contra(1,1,i,j)*utmp + gridstruct%c_l2contra(1,2,i,j)*vtmp
+            v (i,j) = gridstruct%c_l2contra(2,1,i,j)*utmp + gridstruct%c_l2contra(2,2,i,j)*vtmp
          enddo
       enddo
 
@@ -9120,6 +9130,7 @@ end subroutine terminator_tracers
             lat = dgrid(i,j,2)
             call compute_wind_NL2010(utmp, vtmp, lat, lon, time, T, Ubar)
             vc(i,j) = gridstruct%d_l2contra(2,1,i,j)*utmp + gridstruct%d_l2contra(2,2,i,j)*vtmp
+            u (i,j) = gridstruct%d_l2contra(1,1,i,j)*utmp + gridstruct%d_l2contra(1,2,i,j)*vtmp
          enddo
       enddo
 

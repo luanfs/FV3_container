@@ -262,7 +262,7 @@ module fv_arrays_mod
         logical :: rmp_ne = .false.
 
         !--- k2e rmp parameter
-        integer :: k2e_nord = 2 !--- WATCH FOR CONSISTENCY WITH GLOBAL_GRID
+        integer :: k2e_nord = 4 !--- WATCH FOR CONSISTENCY WITH GLOBAL_GRID
         integer, dimension(:,:), allocatable :: k2e_loc
         real(kind=R_GRID), dimension(:,:,:), allocatable :: k2e_coef
         integer, dimension(:,:), allocatable :: k2e_loc_b
@@ -1080,6 +1080,7 @@ end type duogrid_type
    logical :: do_diss_est  = .false.     !< compute and save dissipation estimate
    logical :: ecmwf_ic = .false.   !< If external_ic = .true., reads initial conditions from ECMWF analyses.
                                    !< The default is .false.
+   logical :: use_gfsO3 = .false.     ! only work when "ecmwf_ic = .T.".
    logical :: gfs_phil = .false.      !< if .T., compute geopotential inside of GFS physics (not used?)
    logical :: agrid_vel_rst = .false.   !< Whether to write the unstaggered latitude-longitude winds
                                         !< (ua and va) to the restart files. This is useful for data
@@ -1099,6 +1100,7 @@ end type duogrid_type
                                        !< from either the restart file (if restarting) or from the external initial
                                        !< condition file (if nggps_ic or ecwmf_ic are .true.). This overrides the
                                        !< hard-coded levels in fv_eta. The default is .false.
+   logical :: is_ideal_case = .true.    !< if .T., this is an ideal test case
    logical :: read_increment = .false.   !< read in analysis increment and add to restart
 ! Default restart files from the "Memphis" latlon FV core:
    character(len=128) :: res_latlon_dynamics = 'INPUT/fv_rst.res.nc'   !< If external_ic =.true.gives the filename of the
@@ -1402,7 +1404,8 @@ end type duogrid_type
   end type sg_diag_type
 
   type coarse_restart_type
-
+     real, _ALLOCATABLE :: u0(:,:,:)
+     real, _ALLOCATABLE :: v0(:,:,:)
      real, _ALLOCATABLE :: u(:,:,:)
      real, _ALLOCATABLE :: v(:,:,:)
      real, _ALLOCATABLE :: w(:,:,:)
@@ -1514,6 +1517,8 @@ end type duogrid_type
 !
 ! The C grid component is "diagnostic" in that it is predicted every time step
 ! from the D grid variables.
+    real, _ALLOCATABLE :: u0(:,:,:)   _NULL  !< initial (t=0) D grid zonal wind (m/s)
+    real, _ALLOCATABLE :: v0(:,:,:)   _NULL  !< initial (t=0) D grid meridional wind (m/s)
     real, _ALLOCATABLE :: u(:,:,:)    _NULL  !< D grid zonal wind (m/s)
     real, _ALLOCATABLE :: v(:,:,:)    _NULL  !< D grid meridional wind (m/s)
     real, _ALLOCATABLE :: pt(:,:,:)   _NULL  !< temperature (K)
@@ -1752,7 +1757,13 @@ contains
     Atm%ng => Atm%bd%ng
 
     Atm%flagstruct%ndims = ndims_in
-
+    if (Atm%flagstruct%is_ideal_case) then
+       allocate (   Atm%u0(isd:ied  ,jsd:jed+1,npz) )
+       allocate (   Atm%v0(isd:ied+1,jsd:jed  ,npz) )
+    else
+       allocate (   Atm%u0(isd:isd,jsd:jsd,1) )
+       allocate (   Atm%v0(isd:isd,jsd:jsd,1) )
+    endif
     allocate (    Atm%u(isd:ied  ,jsd:jed+1,npz) )
     allocate (    Atm%v(isd:ied+1,jsd:jed  ,npz) )
 
@@ -1884,6 +1895,24 @@ contains
            do i=isd, ied
                Atm%u(i,j,k) = 0.
               Atm%vc(i,j,k) = real_big
+           enddo
+        enddo
+        do j=jsd, jed+1
+           do i=isd, ied
+              if (Atm%flagstruct%is_ideal_case) then
+                 Atm%u0(i,j,k) = 0.
+              endif
+               Atm%u(i,j,k) = 0.
+              Atm%vc(i,j,k) = real_big
+           enddo
+        enddo
+        do j=jsd, jed
+           do i=isd, ied+1
+              if (Atm%flagstruct%is_ideal_case) then
+                 Atm%v0(i,j,k) = 0.
+              endif
+               Atm%v(i,j,k) = 0.
+              Atm%uc(i,j,k) = real_big
            enddo
         enddo
         do j=jsd, jed
@@ -2230,6 +2259,8 @@ contains
     integer :: n
 
     if (.not.Atm%allocated) return
+    deallocate (   Atm%u0 )
+    deallocate (   Atm%v0 )
     deallocate (    Atm%u )
     deallocate (    Atm%v )
     deallocate (   Atm%pt )

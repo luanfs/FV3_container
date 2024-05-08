@@ -32,7 +32,7 @@ module fv_dynamics_mod
    use fv_mp_mod,           only: start_group_halo_update, complete_group_halo_update
    use fv_timing_mod,       only: timing_on, timing_off
    use diag_manager_mod,    only: send_data
-   use fv_diagnostics_mod,  only: fv_time, prt_mxm, range_check, prt_minmax, is_ideal_case
+   use fv_diagnostics_mod,  only: fv_time, prt_mxm, range_check, prt_minmax
    use mpp_domains_mod,     only: DGRID_NE, CGRID_NE, mpp_update_domains, domain2D
    use mpp_mod,             only: mpp_pe
    use field_manager_mod,   only: MODEL_ATMOS
@@ -48,6 +48,7 @@ module fv_dynamics_mod
                                   fv_diag_type, fv_grid_bounds_type, inline_mp_type
    use fv_nwp_nudge_mod,    only: do_adiabatic_init
    use duogrid_mod,         only: ext_scalar
+   use test_cases_mod,      only: test_case
 
 implicit none
    logical :: RF_initialized = .false.
@@ -493,11 +494,19 @@ contains
 
 #ifdef SW_DYNAMICS
 !!$OMP parallel do default(none) shared(is,ie,js,je,ps,delp,agrav)
-      do j=js,je
-         do i=is,ie
-            ps(i,j) = delp(i,j,1) * agrav
+      if(test_case>1) then
+         do j=js,je
+            do i=is,ie
+               ps(i,j) = delp(i,j,1) * agrav
+            enddo
          enddo
-      enddo
+      else
+         do j=js,je
+            do i=is,ie
+               ps(i,j) = delp(i,j,1) * agrav/q(i,j,1,1)
+            enddo
+         enddo
+      endif
 #else
       if( .not. flagstruct%inline_q .and. nq /= 0 ) then
 !--------------------------------------------------------
@@ -912,7 +921,7 @@ contains
 
  subroutine Rayleigh_Super(dt, npx, npy, npz, ks, pm, phis, tau, u, v, w, pt,  &
                            ua, va, delz, agrid, cp, rg, ptop, hydrostatic,     &
-                           conserve, rf_cutoff, gridstruct, domain, bd)
+                           conserve, rf_cutoff, gridstruct, flagstruct, domain, bd)
     real, intent(in):: dt
     real, intent(in):: tau              ! time scale (days)
     real, intent(in):: cp, rg, ptop, rf_cutoff
@@ -931,6 +940,7 @@ contains
     real,   intent(in) :: agrid(bd%isd:bd%ied,  bd%jsd:bd%jed,2)
     real, intent(in) :: phis(bd%isd:bd%ied,bd%jsd:bd%jed)     ! Surface geopotential (g*Z_surf)
     type(fv_grid_type), intent(INOUT) :: gridstruct
+    type(fv_flags_type), intent(INOUT) :: flagstruct
     type(domain2d), intent(INOUT) :: domain
 !
     real, allocatable ::  u2f(:,:,:)
@@ -954,7 +964,7 @@ contains
     rcv = 1. / (cp - rg)
 
      if ( .not. RF_initialized ) then
-        if ( is_ideal_case )then
+        if (flagstruct%is_ideal_case )then
           allocate ( u00(is:ie,  js:je+1,npz) )
           allocate ( v00(is:ie+1,js:je  ,npz) )
 !$OMP parallel do default(none) shared(is,ie,js,je,npz,u00,u,v00,v)
@@ -1017,11 +1027,11 @@ endif
                                         call timing_off('COMM_TOTAL')
 
 !$OMP parallel do default(none) shared(is,ie,js,je,kmax,pm,rf_cutoff,w,rf,u,v, &
-!$OMP                                  u00,v00,is_ideal_case, &
+!$OMP                                  u00,v00, flagstruct, &
 !$OMP                                  conserve,hydrostatic,pt,ua,va,u2f,cp,rg,ptop,rcv)
      do k=1,kmax
         if ( pm(k) < rf_cutoff ) then
-           if (is_ideal_case) then
+           if (flagstruct%is_ideal_case) then
               if (.not. hydrostatic) then
                  do j=js,je
                     do i=is,ie
