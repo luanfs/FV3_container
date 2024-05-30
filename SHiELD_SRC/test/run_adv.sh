@@ -16,42 +16,38 @@ clear
 # plot_scalar_field.py, plot_converge.py and plot_error_graph.py
 
 #test case
-tc="-6"
+tc="-3"
 
 # 1d advection scheme
-#hords=(0 8)
-hords=(0)
+hords=(0 8)
+#hords=(8)
 
 # 2d advection scheme
-#advs=(1 1 2 2)
-#advs=(1 1 2 2 1 1 2 2)
-#advs=(1 2)
+#advs=(1 2 1 2 1 2 1 2)
 advs=(1 2 1 2)
 #advs=(2)
 
 # Simulation arrays
 #grid_type (0-equiedge; 2-equiangular)
-#gtypes=(0 2)
-#gtypes=(0 0)
-#gtypes=(2 2)
-#gtypes=(0)
-#gtypes=(2 2 0 0)
-#gtypes=(2 2 2)
-#gtypes=(2 2 2 2)
-#gtypes=(2 2 2 2 0 0 0 0)
-#gtypes=(0 0 0 0)
+#gtypes=(2 2 0 0 2 2 0 0)
+gtypes=(2 2 0 0)
+#gtypes=(0 2 0 2)
+#gtypes=(2 0)
 #gtypes=(0 0 0)
-gtypes=(2)
+#gtypes=(2)
 
 #mass fixer
-#mfs=(0 1 0 1)
-mfs=(1 1 1 1)
-#mfs=(0 1 0 1 0 1 0 1)
+#mfs=(1 1 1 1 0 0 0 0)
+mfs=(1 1 1 1) #always true
+
+#midpoint cube
+#mps=(".false." ".false." ".true.")
+mps=(".false." ".false." ".false." ".false." ".false." ".false." ".false." ".false." ".false." ".false." ".false." ".false.")
 
 # duogrid schemes (0-none; 1-interpolation based on geodesic distances; 2-interpolation base on cube distances)
 dgs=(2 2 2 2 2 2 2 2)
 #dgs=(1 1 2 2)
-#dgs=(0 0 2 2)
+#dgs=(0 2 2)
 #dgs=(2 2)
 
 #divergence damping (only for sw)
@@ -69,7 +65,7 @@ alphas=(45 45 45 45 45 45 45 45)
 N=48
 
 #number of grids to be tested (we double the values N for each new grid and divide dt by 2)
-Ng=1
+Ng=5
 
 #----------------------------------------------------------------------------------------------
 
@@ -108,6 +104,7 @@ case $tc in
     tcname="twogaussians-div"
     days="12"
     dt=6400
+    #dt=2592
     n_split=1
     ;;
 
@@ -119,12 +116,19 @@ case $tc in
     ;;
 
     -8)
-    tcname="cylinder-div"
+    tcname="cylinder-ndiv"
     days="12"
-    dt=7200
+    dt=1600
     n_split=1
     ;;
 
+    -9)
+    tcname="cylinder-div"
+    days="12"
+    dt=6400
+    n_split=1
+    ;;
+ 
     -2)
     tcname="duogrid-test"
     days="12"
@@ -163,8 +167,8 @@ for ((j=1; j<=$Ng; j++)); do
             dd=${dds[i]}
             adv=${advs[i]}
             mf=${mfs[i]}
-  
-            if [[ $tc == -6 || $tc == -5  || $tc == -8 ]]; then
+   
+            if [[ $tc == -6 || $tc == -5  || $tc == -8 || $tc == -9 ]]; then
                 alpha=0
             fi
             # Run the code shallow water script

@@ -1526,11 +1526,12 @@
                delp(i,j,1) = 0.1d0
                if (r1 < r0) then
                   delp(i,j,1) = 1.d0
-                  !if(abs(p3(1)-p1(1)) <= 0.05d0) then
-                  !  if(p3(2)-p1(2)>=0) delp(i,j,1) = 0.1d0
-                  !endif
+                  if(abs(p3(1)-p1(1)) <= 0.05d0) then
+                    if(p3(2)-p1(2)>=0) delp(i,j,1) = 0.1d0
+                  endif
                endif
                delp(i,j,1) = delp(i,j,1)*grav
+               q(i,j,1,1) = 1.d0
             enddo
          enddo
          initWindsCase=initWindsCase7

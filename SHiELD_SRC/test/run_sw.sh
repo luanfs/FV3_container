@@ -16,43 +16,41 @@ clear
 # plot_scalar_field.py, plot_converge.py and plot_error_graph.py
 
 #test case
-tc="2"
+tc="6"
 
 # 1d advection scheme
-hords=(5 8)
+#hords=(5 8)
 hords=(8)
 
 # 2d advection scheme
 #advs=(1 1 1 1 1 1)
-advs=(2 2 1 1)
-#advs=(1 1 2 2 1 1 2 2)
+advs=(1 1 2 2)
 #advs=(1 2)
 #advs=(1 1 1 1)
 #advs=(2 2 2 2)
 #advs=(2 2)
+#advs=(1)
 
 # Simulation arrays
 #grid_type (0-equiedge; 2-equiangular)
 #gtypes=(2)
 #gtypes=(2 2 2 0 0 0)
 gtypes=(0 2 0 2)
-#gtypes=(0 2 0 2 0 2 0 2)
 #gtypes=(0 0 2 2)
 #gtypes=(2 2 2 2 2 2)
 #gtypes=(2 2)
-#gtypes=(0 0)
 #gtypes=(0 2)
 #gtypes=(2)
 #gtypes=(0 0 0 0)
 #gtypes=(2 2 2 2)
 
 # duogrid schemes (0-none; 1-interpolation based on geodesic distances; 2-interpolation base on cube distances)
-#dgs=(2 2 2 2 2 2)
-dgs=(1 1 1 1 1 1 1 1 1 1 1)
+dgs=(2 2 2 2 2 2)
+#dgs=(1 1 1 1 1 1)
 #dgs=(0 0 0 0 0 0)
 
 #mass fixer
-mfs=(1 1 1 1 1 1 1 1 1 1)
+mfs=(1 1 1 1)
 #mfs=(0 1 0 1)
 
 #divergence damping (only for sw)
@@ -65,17 +63,16 @@ else
    #dds=(0 0.12 0 0.12)
 fi
 #dds=(0 0.12 0 0.12)
-dds=(0.12 0.12 0.12 0.12 0 0 0 0)
 
 # rotation angles
 alphas=(45 45 45 45 45 45 45 45)
-#alphas=(0 0 0 0 0 0 0 0 0 0)
+#alphas=(0 0 0 0 0 0)
 
 # Initial value of N
 N=48
 
 #number of grids to be tested (we double the values N for each new grid and divide dt by 2)
-Ng=5
+Ng=1
 
 #----------------------------------------------------------------------------------------------
 
@@ -84,14 +81,14 @@ case $tc in
     #-------------SW tests-------------
     2)
     tcname="geobalance"
-    days="5"
+    days="1"
     dt=3600
     n_split=7
     ;;
 
     5)
     tcname="mountain"
-    days="10"
+    days="14"
     dt=1800
     n_split=7
     ;;
@@ -108,6 +105,13 @@ case $tc in
     days="8"
     dt=1800
     n_split=8
+    ;;
+
+    110)
+    tcname="divwind"
+    days="7"
+    dt=3200
+    n_split=7
     ;;
 esac
 
