@@ -39,12 +39,12 @@ module duogrid_mod
   use global_grid_mod, only: global_grid_init, global_grid_end
 
   use fv_arrays_mod, only: duogrid_type, fv_grid_bounds_type, fv_flags_type, fv_atmos_type, fv_grid_type
-  use fv_grid_utils_mod, only: c2l_ord2, great_circle_dist
+  !use fv_grid_utils_mod, only: c2l_ord2, great_circle_dist
   use fv_timing_mod, only: timing_on, timing_off
 
   use mpp_parameter_mod, only: DGRID_NE, BGRID_NE, BGRID_SW, AGRID, SCALAR_PAIR, NORTH, EAST, WEST, SOUTH, CGRID_NE
 
-  use fv_grid_utils_mod, only: mid_pt_cart, latlon2xyz, vect_cross, normalize_vect
+  !use fv_grid_utils_mod, only: mid_pt_cart, latlon2xyz, vect_cross, normalize_vect
   implicit none
 
   private
@@ -3260,6 +3260,214 @@ contains
     deallocate (dg%es_ext)
   end subroutine duogrid_dealloc
   !===========================================================================
+
+
+ subroutine c2l_ord2(u, v, ua, va, gridstruct, km, grid_type, bd, do_halo)
+ type(fv_grid_bounds_type), intent(IN) :: bd
+  integer, intent(in) :: km, grid_type
+  real, intent(in) ::  u(bd%isd:bd%ied,bd%jsd:bd%jed+1,km)
+  real, intent(in) ::  v(bd%isd:bd%ied+1,bd%jsd:bd%jed,km)
+ type(fv_grid_type), intent(IN), target :: gridstruct
+ logical, intent(in) :: do_halo
+!
+  real, intent(out):: ua(bd%isd:bd%ied, bd%jsd:bd%jed,km)
+  real, intent(out):: va(bd%isd:bd%ied, bd%jsd:bd%jed,km)
+!--------------------------------------------------------------
+! Local
+  real wu(bd%is-1:bd%ie+1,  bd%js-1:bd%je+2)
+  real wv(bd%is-1:bd%ie+2,  bd%js-1:bd%je+1)
+  real u1(bd%is-1:bd%ie+1), v1(bd%is-1:bd%ie+1)
+  integer i, j, k
+  integer :: is,  ie,  js,  je
+
+  real, dimension(:,:), pointer :: a11, a12, a21, a22
+  real, dimension(:,:), pointer :: dx, dy, rdxa, rdya
+
+  a11 => gridstruct%a11
+  a12 => gridstruct%a12
+  a21 => gridstruct%a21
+  a22 => gridstruct%a22
+
+  dx   => gridstruct%dx
+  dy   => gridstruct%dy
+  rdxa => gridstruct%rdxa
+  rdya => gridstruct%rdya
+
+  if (do_halo) then
+     is  = bd%is-1
+     ie  = bd%ie+1
+     js  = bd%js-1
+     je  = bd%je+1
+  else
+     is  = bd%is
+     ie  = bd%ie
+     js  = bd%js
+     je  = bd%je
+  endif
+
+!$OMP parallel do default(none) shared(is,ie,js,je,km,grid_type,u,dx,v,dy,ua,va,a11,a12,a21,a22) &
+!$OMP                          private(u1, v1, wu, wv)
+  do k=1,km
+     if ( grid_type < 4 ) then
+       do j=js,je+1
+          do i=is,ie
+             wu(i,j) = u(i,j,k)*dx(i,j)
+          enddo
+       enddo
+       do j=js,je
+          do i=is,ie+1
+             wv(i,j) = v(i,j,k)*dy(i,j)
+          enddo
+       enddo
+
+       do j=js,je
+          do i=is,ie
+! Co-variant to Co-variant "vorticity-conserving" interpolation
+             u1(i) = 2.*(wu(i,j) + wu(i,j+1)) / (dx(i,j)+dx(i,j+1))
+             v1(i) = 2.*(wv(i,j) + wv(i+1,j)) / (dy(i,j)+dy(i+1,j))
+!!!          u1(i) = (wu(i,j) + wu(i,j+1)) * rdxa(i,j)
+!!!          v1(i) = (wv(i,j) + wv(i+1,j)) * rdya(i,j)
+! Cubed (cell center co-variant winds) to lat-lon:
+             ua(i,j,k) = a11(i,j)*u1(i) + a12(i,j)*v1(i)
+             va(i,j,k) = a21(i,j)*u1(i) + a22(i,j)*v1(i)
+          enddo
+       enddo
+     else
+! 2nd order:
+       do j=js,je
+          do i=is,ie
+             ua(i,j,k) = 0.5*(u(i,j,k)+u(i,  j+1,k))
+             va(i,j,k) = 0.5*(v(i,j,k)+v(i+1,j,  k))
+          enddo
+       enddo
+     endif
+  enddo
+
+ end subroutine c2l_ord2
+
+
+ real function great_circle_dist( q1, q2, radius )
+      real(kind=R_GRID), intent(IN)           :: q1(2), q2(2)
+      real(kind=R_GRID), intent(IN), optional :: radius
+
+      real (kind=R_GRID):: p1(2), p2(2)
+      real (kind=R_GRID):: beta
+      integer n
+
+      do n=1,2
+         p1(n) = q1(n)
+         p2(n) = q2(n)
+      enddo
+
+      beta = asin( sqrt( sin((p1(2)-p2(2))/2.)**2 + cos(p1(2))*cos(p2(2))*   &
+                         sin((p1(1)-p2(1))/2.)**2 ) ) * 2.
+
+      if ( present(radius) ) then
+           great_circle_dist = radius * beta
+      else
+           great_circle_dist = beta   ! Returns the angle
+      endif
+
+  end function great_circle_dist
+
+ subroutine mid_pt_cart(p1, p2, e3)
+    real(kind=R_GRID), intent(IN)  :: p1(2), p2(2)
+    real(kind=R_GRID), intent(OUT) :: e3(3)
+!-------------------------------------
+    real(kind=R_GRID) e1(3), e2(3)
+
+    call latlon2xyz(p1, e1)
+    call latlon2xyz(p2, e2)
+    call mid_pt3_cart(e1, e2, e3)
+
+ end subroutine mid_pt_cart
+
+ subroutine mid_pt3_cart(p1, p2, e)
+       real(kind=R_GRID), intent(IN)  :: p1(3), p2(3)
+       real(kind=R_GRID), intent(OUT) :: e(3)
+!
+       real (kind=R_GRID):: q1(3), q2(3)
+       real (kind=R_GRID):: dd, e1, e2, e3
+       integer k
+
+       do k=1,3
+          q1(k) = p1(k)
+          q2(k) = p2(k)
+       enddo
+
+       e1 = q1(1) + q2(1)
+       e2 = q1(2) + q2(2)
+       e3 = q1(3) + q2(3)
+
+       dd = sqrt( e1**2 + e2**2 + e3**2 )
+       e1 = e1 / dd
+       e2 = e2 / dd
+       e3 = e3 / dd
+
+       e(1) = e1
+       e(2) = e2
+       e(3) = e3
+
+ end subroutine mid_pt3_cart
+
+
+
+ subroutine latlon2xyz(p, e, id)
+!
+! Routine to map (lon, lat) to (x,y,z)
+!
+ real(kind=R_GRID), intent(in) :: p(2)
+ real(kind=R_GRID), intent(out):: e(3)
+ integer, optional, intent(in):: id   ! id=0 do nothing; id=1, right_hand
+
+ integer n
+ real (kind=R_GRID):: q(2)
+ real (kind=R_GRID):: e1, e2, e3
+
+    do n=1,2
+       q(n) = p(n)
+    enddo
+
+    e1 = cos(q(2)) * cos(q(1))
+    e2 = cos(q(2)) * sin(q(1))
+    e3 = sin(q(2))
+!-----------------------------------
+! Truncate to the desired precision:
+!-----------------------------------
+    e(1) = e1
+    e(2) = e2
+    e(3) = e3
+
+ end subroutine latlon2xyz
+
+ subroutine vect_cross(e, p1, p2)
+ real(kind=R_GRID), intent(in) :: p1(3), p2(3)
+ real(kind=R_GRID), intent(out):: e(3)
+!
+! Perform cross products of 3D vectors: e = P1 X P2
+!
+      e(1) = p1(2)*p2(3) - p1(3)*p2(2)
+      e(2) = p1(3)*p2(1) - p1(1)*p2(3)
+      e(3) = p1(1)*p2(2) - p1(2)*p2(1)
+
+ end subroutine vect_cross
+
+
+ subroutine normalize_vect(e)
+!                              Make e an unit vector
+ real(kind=R_GRID), intent(inout):: e(3)
+ real(kind=R_GRID):: pdot
+ integer k
+
+    pdot = e(1)**2 + e(2)**2 + e(3)**2
+    pdot = sqrt( pdot )
+
+    do k=1,3
+       e(k) = e(k) / pdot
+    enddo
+
+ end subroutine normalize_vect
+
 
 end module duogrid_mod
 
