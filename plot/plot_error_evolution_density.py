@@ -137,7 +137,7 @@ for g in range(0, len(gtypes)):
        #schemes_label.append(advname+"."+hord_name+".dd"+str(dd))
        print("g"+str(gtype)+'.'+advname+"."+hord_name+".mf"+str(mf))
        #print("g"+str(gtype)+'.'+advname+"."+hord_name+".dd"+str(dd))
-       file = filepath+"error_delp.txt"
+       file = filepath+"error_dens.txt"
        errors = np.loadtxt(file)
 
        # get errors
@@ -185,6 +185,8 @@ for l in range(0, len(errors)):
         dd = str(dds[d])
         for m in range(0,M):
          e = error[c]
+         n = len(e)
+         print(gname, etitle[l], schemes_label[c], N, e[n-1])
          Nsteps = np.shape(e)[0]
          time = np.linspace(0,Tf,Nsteps+1)[1:]
          ax.semilogy(time[0:Nsteps:4], e[0:Nsteps:4], lines_style[k], color=colors[color_count], label = schemes_label[c])

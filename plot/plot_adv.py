@@ -1,6 +1,6 @@
 import xarray as xr
 import numpy as np
-from plotting_routines  import plot_scalarfield, plot_scalarfield_panel
+from plotting_routines  import plot_scalarfield, plot_scalarfield_panel, plot_scalarfield_wind
 from reference_solution import href_Agrid
 #-------------------------------------------------------------------
 # Plotting parameters
@@ -9,7 +9,7 @@ dpi = 100
 
 # Map projection
 map_projection = "mercator"
-#map_projection = "sphere"
+map_projection = "sphere"
 
 graphdir='../graphs/'
 datadir='../SHiELD_SRC/test/CI/BATCH-CI/'
@@ -20,19 +20,19 @@ figformat='png'
 
 #-------------------------------------------------------------------
 # test parameters
-tc = -7
+tc = -6
 
 # 1dadvection scheme
 hord = 8
 
 #grid type
-gtype = 2  # 0-equiedge; 2-equiangular
+gtype = 0 # 0-equiedge; 2-equiangular
 
 # duogrid parameter
 dg = 2
 
 # 2d advection scheme
-adv = 2
+adv = 1
 
 # mass fixer
 mf = 1
@@ -40,9 +40,9 @@ mf = 1
 # values of N
 #Ns = (48,)
 #Ns = (96,)
-Ns=(192,)
+#Ns=(192,)
 #Ns = (384,)
-
+Ns = (768,)
 
 # basename used in outputs
 if tc==1 :
@@ -78,22 +78,29 @@ elif tc==-6 :
     alpha = 0 # rotation angle
     Tf = 12
     plot_error = True
-    hmin, hmax = 0.0, 5.5
-
+    hmin, hmax = 0.0, 1.2
+   # hmin, hmax = 0.0, 5.7
 elif tc==-7 :
     basename='cylinder-zonal'
     alpha = 45 # rotation angle
     Tf = 12
     plot_error = True
-    hmin, hmax = 0.0, 1.0
-
+    hmin, hmax = 0.0, 1.2
+   # hmin, hmax = 0.1, 1
 elif tc==-8 :
+    basename='cylinder-ndiv'
+    alpha = 0 # rotation angle
+    Tf = 12
+    plot_error = True
+    hmin, hmax = 0.0, 1.15
+    hmin, hmax = 0.1, 1
+elif tc==-9 :
     basename='cylinder-div'
     alpha = 0 # rotation angle
     Tf = 12
     plot_error = True
-    hmin, hmax = 0.0, 1.0
-
+    hmin, hmax = 0.0, 1.2
+    hmin, hmax = 0.1, 1
 else:
     print('ERROR: invalid initial condition')
     exit()
@@ -115,9 +122,15 @@ else:
 # adv name
 if adv==1:
    advname = 'PL'
+   advname = 'FV3'
 elif adv==2:
-   advname = 'LT'
+   advname = 'LT2'
+   #advname = 'MOD'
 
+if hord==0:
+   hord_name='UNLIM'
+elif hord==8:
+   hord_name='MONO'
 
 #-------------------------------------------------------------------
 # Loop over grids
@@ -136,7 +149,8 @@ for N in Ns:
     h_fv3   = np.zeros((N,N,6,nplots+1))
     h_ref   = np.zeros((N,N,6,nplots+1))
     h_error = np.zeros((N,N,6,nplots+1))
-
+    ua = np.zeros((N,N,6,nplots+1))
+    va = np.zeros((N,N,6,nplots+1))
     #-----------------------------------------------------------------------------------------
     # This loop over tiles computes the maximum errors
     for t in range(0,nplots+1):        
@@ -152,17 +166,24 @@ for N in Ns:
             # Variable to be plotted
             if t==0:
                h_fv3[:,:,tile,t] = data['ps_ic'][:,:].values
+               ua[:,:,tile,t] = data['ua_ic'][:,:].values
+               va[:,:,tile,t] = data['va_ic'][:,:].values
             else:
                h_fv3[:,:,tile,t] = data['ps'][t-1,:,:].values
+               ua[:,:,tile,t] = data['ucomp'][t-1,:,:].values
+               va[:,:,tile,t] = data['vcomp'][t-1,:,:].values
+
             #print(np.amin(h_fv3[:,:,tile,t]),np.amax(h_fv3[:,:,tile,t]))
             # Get reference solution
+            #print(data.keys())
+            #exit()
             if tc==1 or tc==-3:
                 if t==0 or t==nplots:
                     h_ref[:,:,tile,t] = data['ps_ic'][:,:].values
                 else:
                     h_ref[:,:,tile,t] = href_Agrid(grid, t, dtplot, tc, alpha)
 
-            if tc==-5 or tc==-6 or tc==-7:
+            if tc==-5 or tc==-6 or tc==-7 or tc==-8:
                 if t==0 or t==nplots:
                     h_ref[:,:,tile,t] = data['ps_ic'][:,:].values
  
@@ -172,11 +193,21 @@ for N in Ns:
     h_error = h_ref - h_fv3
     h_error_min, h_error_max = np.amin(h_error[:,:,:,nplots]), np.amax(h_error[:,:,:,nplots])
     h_error_abs = max(abs(h_error_min), abs(h_error_max))
-    h_error_abs = 3*10**(-3)
-    h_error_abs = 1.1*10**(-2)
+    #h_error_abs = 1.7*10**(-3)
+    #h_error_abs = 2*10**(-3)
+    #h_error_abs = 1.1*10**(-2)
+    #h_error_abs = 1.0*10**(-2)
+    #h_error_abs = 3*10**(-3)
+    #h_error_abs = 2*10**(-2)
+    #h_error_abs = 4*10**(-4)
+    h_error_abs = 3.6*10**(-3)
+   # h_error_abs = 0.00039845
+   # print(h_error_abs)
+    #h_error_abs = 3.6*10**(-3)
+    #h_error_abs = 1.8*10**(-3)
     hmin_fv3, hmax_fv3 = hmin, hmax
-    hmin_fv3, hmax_fv3 =  np.amin(h_fv3), np.amax(h_fv3)
-    hmin_fv3, hmax_fv3 =  0.0, 1.0
+    #hmin_fv3, hmax_fv3 =  np.amin(h_fv3), np.amax(h_fv3)
+    #hmin_fv3, hmax_fv3 = -55.0,55.0
     #-----------------------------------------------------------------------------------------
 
     #-----------------------------------------------------------------------------------------
@@ -191,17 +222,18 @@ for N in Ns:
 
        for t in range(ts,te+1):
           dmax = str("{:.2e}".format(np.amax(abs(h_error[:,:,:,t]))))
-          Time = str("{:.2e}".format(time))
+          #Time = str("{:.2e}".format(time))
+          Time = str("{:.0f}".format(time))
 
           if tc==1 or tc==-3 or tc==-4:
-             title = "Fluid depth $h$ error - Test case "+str(tc)+", $\\alpha$ = "+str(alpha)\
+             title = "$\\phi$ error - Test case "+str(tc)+", $\\alpha$ = "+str(alpha)\
              +", time = "+str(Time)+" days, max = "+dmax+"\n"\
-            +"Grid = "+gname+", "+advname+".hord"+str(hord)+".mf"+str(mf)+", N = "+str(N)\
+            +"Grid = "+gname+", "+advname+"."+str(hord_name)+", N = "+str(N)\
              +"\n"
           else:
-             title = "Fluid depth $h$ error - Test case "+str(tc)\
+             title = "$\\phi$ error - Test case "+str(tc)\
              +", time = "+str(Time)+" days, max = "+dmax+"\n"\
-            +"Grid = "+gname+", "+advname+".hord"+str(hord)+".mf"+str(mf)+", N = "+str(N)\
+            +"Grid = "+gname+", "+advname+"."+str(hord_name)+", N = "+str(N)\
              +"\n"
 
           # Filename
@@ -219,7 +251,7 @@ for N in Ns:
 
     #-----------------------------------------------------------------------------------------
 
-    #exit()
+    exit()
 
     #-----------------------------------------------------------------------------------------
     # Plot the scalar field
@@ -233,18 +265,19 @@ for N in Ns:
         hminfv3, hmaxfv3 = np.amin(h_fv3[:,:,:,t]), np.amax(h_fv3[:,:,:,t])
         dmin = str("{:.2e}".format(hminfv3))
         dmax = str("{:.2e}".format(hmaxfv3))
-        Time = str("{:.2e}".format(time))
+        #Time = str("{:.2e}".format(time))
+        Time = str("{:.0f}".format(time))
 
         # title
         if tc==1 or tc==-3 or tc==-4:
-            title = "Fluid depth $h$ - Test case "+str(tc)+", $\\alpha$ = "+str(alpha)\
+            title = "$\\phi$ - Test case "+str(tc)+", $\\alpha$ = "+str(alpha)\
             +", time = "+Time+" days"+", min = "+dmin+", max = "+dmax+"\n"\
-            +"Grid = "+gname+", "+advname+".hord"+str(hord)+".mf"+str(mf)+", N = "+str(N)\
+            +"Grid = "+gname+", "+advname+"."+str(hord_name)+".mf"+str(mf)+", N = "+str(N)\
             +"\n"
         else:
-            title = "Fluid depth $h$ - Test case "+str(tc)\
+            title = "$\\phi$ - Test case "+str(tc)\
             +", time = "+Time+" days"+", min = "+dmin+", max = "+dmax+"\n"\
-            +"Grid = "+gname+", "+advname+".hord"+str(hord)+".mf"+str(mf)+", N = "+str(N)\
+            +"Grid = "+gname+", "+advname+"."+str(hord_name)+".mf"+str(mf)+", N = "+str(N)\
             +"\n"
 
 
@@ -253,8 +286,13 @@ for N in Ns:
           +"_g"+str(gtype)+"_"+dg+"_adv"+str(adv)+"_hord"+str(hord)+"_mf"+str(mf)+"_tf"+str(Tf)
 
         # plot
+        colormap = 'gist_ncar'
+        #colormap = 'jet'
+        #colormap = 'magma_r'
         plot_scalarfield(h_fv3[:,:,:,t], map_projection, title, filename, filepath, \
-        'jet', hmin_fv3, hmax_fv3, dpi, figformat)
+        colormap, hmin_fv3, hmax_fv3, dpi, figformat)
+        #plot_scalarfield_wind(h_fv3[:,:,:,t], ua[:,:,:,t], va[:,:,:,t], map_projection, title, filename, filepath, \
+        #colormap, hmin_fv3, hmax_fv3, dpi, figformat)
         print('plotted the file '+filename)
 
         # time update
