@@ -57,7 +57,7 @@ module dyn_core_mod
   use fv_regional_mod,      only: delz_regBC ! TEMPORARY --- lmh
 
 #ifdef SW_DYNAMICS
-  use test_cases_mod,      only: test_case, case9_forcing1, case9_forcing2, wind_NL2010, error_adv_zonal
+  use test_cases_mod,      only: test_case, case9_forcing1, case9_forcing2, wind_NL2010, error_adv_zonal, error_density
 #endif
   use fv_regional_mod,     only: dump_field, exch_uv, H_STAGGER, U_STAGGER, V_STAGGER
   use fv_regional_mod,     only: a_step, p_step, k_step, n_step
@@ -1627,6 +1627,7 @@ endif
       if (test_case==2 .or. test_case==1 .or. test_case==-3 .or. test_case==-4) then
          init_step_atmos = time_total==bdt
          call error_adv_zonal(bd, delp, flagstruct, gridstruct, domain, time_total, init_step_atmos)
+         call error_density(npz, nq, bd, q, flagstruct, gridstruct, domain, time_total, init_step_atmos)
       end if
 #endif
 

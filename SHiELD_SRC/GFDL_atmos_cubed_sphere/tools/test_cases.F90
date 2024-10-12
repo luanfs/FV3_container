@@ -183,7 +183,7 @@
       public :: pz0, zz0
       public :: read_namelist_test_case_nml, alpha, test_case
       public :: init_case
-      public :: case9_forcing1, case9_forcing2, case51_forcing, wind_NL2010, error_adv_zonal
+      public :: case9_forcing1, case9_forcing2, case51_forcing, wind_NL2010, error_adv_zonal, error_density
       public :: init_double_periodic
       public :: checker_tracers
       public :: radius, omega, small_earth_scale
@@ -1781,6 +1781,31 @@
 
             initWindsCase=initWindsCase5
          endif
+
+      case(105)
+
+         Ubar = 20.d0
+         gh0  = 5960.d0*Grav
+         phis = 0.0d0
+         p1(1) = 3.d0*PI/2.d0 + PI/4.d0
+         p1(2) = PI/6.d0
+         call latlon2xyz(p1,e1)
+         do j=js2,je2
+            do i=is2,ie2
+               p2(1) = agrid(i,j,1)
+               p2(2) = agrid(i,j,2)
+               call latlon2xyz(p2,e2)
+               r = norm2(e2-e1)
+               phis(i,j) = 2000.d0*Grav*dexp(-10d0*r*r)
+            enddo
+         enddo
+         do j=js2,je2
+            do i=is2,ie2
+               delp(i,j,1) =gh0 - (radius*omega*Ubar + 0.5d0*(Ubar*Ubar)) * &
+                             (dsin(agrid(i  ,j  ,2)))**2  - phis(i,j)
+            enddo
+         enddo
+         initWindsCase=initWindsCase5
 
       case(110)
          Ubar = (2.0*pi*radius)/(12.0*86400.0)
@@ -9247,6 +9272,82 @@ subroutine error_adv_zonal(bd, delp, flagstruct, gridstruct, domain, time, init_
       close(59)
    endif
 end subroutine error_adv_zonal
+
+
+subroutine error_density(npz, nq, bd, q, flagstruct, gridstruct, domain, time, init_step_atmos)
+   !--------------------------------------------------
+   ! Compute the error of the advection problem when the zonal wind is used
+   !--------------------------------------------------
+   type(fv_grid_bounds_type), intent(IN) :: bd
+   real, intent(inout) :: q(   bd%isd:bd%ied  ,bd%jsd:bd%jed  ,npz, nq)  !
+   type(fv_flags_type), target, intent(IN) :: flagstruct
+   type(fv_grid_type), intent(INOUT), target :: gridstruct
+   type(domain2d), intent(INOUT) :: domain
+   real(kind=R_GRID) :: delp_exact(bd%isd:bd%ied  ,bd%jsd:bd%jed)
+   real(kind=R_GRID) :: error(bd%isd:bd%ied  ,bd%jsd:bd%jed)
+   real(kind=R_GRID), pointer, dimension(:,:,:)   :: agrid
+   real, intent(in)  ::   time
+   logical, intent(in) :: init_step_atmos
+   integer, intent(in) :: nq, npz
+
+   ! aux vars
+   real(kind=R_GRID) :: lat, lon
+
+   ! bounds
+   integer :: i, j
+   integer :: is, ie, js, je
+
+   real(kind=R_GRID) :: linf_error, linf_norm
+   real(kind=R_GRID) :: l1_error, l1_norm
+   real(kind=R_GRID) :: l2_error, l2_norm
+   integer :: master, nprocs
+   character (len=128):: filename_error ! filename output
+
+   is  = bd%is
+   ie  = bd%ie
+   js  = bd%js
+   je  = bd%je
+
+   agrid => gridstruct%agrid_64
+
+   !if(mpp_pe()==0) print*, time, init_step_atmos
+   !if (init_step_atmos) then
+   !   call  calc_mass(gridstruct%m0, delp, bd, gridstruct)
+   !else
+   !   call  calc_mass(gridstruct%mf, delp, bd, gridstruct)
+   !endif
+   !if(mpp_pe()==0) print*, time, gridstruct%m0, gridstruct%mf, abs(gridstruct%mf-gridstruct%m0)/gridstruct%m0
+   ! get error
+   error = q(:,:,1,1)-1.d0
+   delp_exact = 1.d0
+
+   ! get norms
+   call calc_linf_norm(linf_error, error     , bd, 0, 0)
+   linf_error = linf_error!/linf_norm
+
+   call calc_l1_norm(l1_norm , delp_exact, bd, gridstruct, 0, 0)
+   call calc_l1_norm(l1_error, error     , bd, gridstruct, 0, 0)
+   l1_error = l1_error/l1_norm
+
+   call calc_l2_norm(l2_norm , delp_exact, bd, gridstruct, 0, 0)
+   call calc_l2_norm(l2_error, error     , bd, gridstruct, 0, 0)
+   l2_error = l2_error/l2_norm
+
+ 
+   master = mpp_root_pe()
+   if (mpp_pe()==master) then
+      !print*, linf_error, l1_error, l2_error
+      filename_error = "error_dens.txt"
+      ! open the file
+      if(init_step_atmos) then
+         open(59, file=filename_error, status='replace')
+      else
+         open(59, file=filename_error, status='old', position='append')
+      endif
+      write(59,*) linf_error, l1_error, l2_error
+      close(59)
+   endif
+end subroutine error_density
 
 
 
