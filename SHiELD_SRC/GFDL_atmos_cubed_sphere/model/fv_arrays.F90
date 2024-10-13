@@ -386,6 +386,9 @@ end type duogrid_type
      real(kind=R_GRID), allocatable, dimension(:,:,:,:) :: c_l2contra
      real(kind=R_GRID), allocatable, dimension(:,:,:,:) :: d_l2contra
 
+     real(kind=R_GRID), allocatable, dimension(:,:,:,:) :: c_l2covari
+     real(kind=R_GRID), allocatable, dimension(:,:,:,:) :: d_l2covari
+
      real(kind=R_GRID), allocatable, dimension(:,:,:,:) :: c_contra2l
      real(kind=R_GRID), allocatable, dimension(:,:,:,:) :: d_contra2l
 
@@ -1570,6 +1573,12 @@ end type duogrid_type
     real, _ALLOCATABLE :: uc_old(:,:,:)     _NULL  ! Time averaged C grid winds
     real, _ALLOCATABLE :: vc_old(:,:,:)     _NULL
 
+    real, _ALLOCATABLE :: forcing_vc(:,:)     _NULL
+    real, _ALLOCATABLE :: forcing_uc(:,:)     _NULL
+    real, _ALLOCATABLE :: forcing_vd(:,:)     _NULL
+    real, _ALLOCATABLE :: forcing_ud(:,:)     _NULL
+    real, _ALLOCATABLE :: forcing_delp(:,:)     _NULL
+
     real, _ALLOCATABLE :: ak(:)  _NULL
     real, _ALLOCATABLE :: bk(:)  _NULL
 
@@ -1803,6 +1812,14 @@ contains
     allocate (   Atm%vc(isd:ied  ,jsd:jed+1,npz) )
     allocate (   Atm%uc_old(isd:ied+1,jsd:jed  ,npz) )
     allocate (   Atm%vc_old(isd:ied  ,jsd:jed+1,npz) )
+
+    allocate (   Atm%forcing_uc(isd:ied+1,jsd:jed) )
+    allocate (   Atm%forcing_vc(isd:ied+1,jsd:jed) )
+    allocate (   Atm%forcing_ud(isd:ied,jsd:jed+1) )
+    allocate (   Atm%forcing_vd(isd:ied,jsd:jed+1) )
+    allocate (   Atm%forcing_delp(isd:ied,jsd:jed) )
+
+
 
     ! For tracer transport:
     allocate ( Atm%mfx(is:ie+1, js:je,  npz) )
@@ -2159,6 +2176,9 @@ contains
     allocate ( Atm%gridstruct%c_l2contra(1:2, 1:2, isd_2d:ied_2d+1,jsd_2d:jed_2d) )
     allocate ( Atm%gridstruct%d_l2contra(1:2, 1:2, isd_2d:ied_2d  ,jsd_2d:jed_2d+1) )
 
+    allocate ( Atm%gridstruct%c_l2covari(1:2, 1:2, isd_2d:ied_2d+1,jsd_2d:jed_2d) )
+    allocate ( Atm%gridstruct%d_l2covari(1:2, 1:2, isd_2d:ied_2d  ,jsd_2d:jed_2d+1) )
+
     allocate ( Atm%gridstruct%c_contra2l(1:2, 1:2, isd_2d:ied_2d+1,jsd_2d:jed_2d  ) )
     allocate ( Atm%gridstruct%d_contra2l(1:2, 1:2, isd_2d:ied_2d  ,jsd_2d:jed_2d+1) )
  
@@ -2281,6 +2301,13 @@ contains
     deallocate (   Atm%vc )
     deallocate (   Atm%uc_old )
     deallocate (   Atm%vc_old )
+
+    deallocate (   Atm%forcing_uc)
+    deallocate (   Atm%forcing_vc)
+    deallocate (   Atm%forcing_ud)
+    deallocate (   Atm%forcing_vd)
+    deallocate (   Atm%forcing_delp)
+
     deallocate ( Atm%mfx )
     deallocate ( Atm%mfy )
     deallocate (  Atm%cx )
@@ -2474,6 +2501,9 @@ contains
 
     deallocate (  Atm%gridstruct%c_l2contra )
     deallocate (  Atm%gridstruct%d_l2contra )
+
+    deallocate (  Atm%gridstruct%c_l2covari )
+    deallocate (  Atm%gridstruct%d_l2covari )
 
     deallocate (  Atm%gridstruct%c_contra2l )
     deallocate (  Atm%gridstruct%d_contra2l )

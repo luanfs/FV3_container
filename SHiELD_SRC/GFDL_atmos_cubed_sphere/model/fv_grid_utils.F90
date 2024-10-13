@@ -2587,8 +2587,8 @@ endif
       real(kind=R_GRID) :: p0(1:3), px(1:3), py(1:3) ! vectors
       real(kind=R_GRID) :: lat, lon
       real(kind=R_GRID) :: a11, a12, a21, a22, det
-      real, pointer, dimension(:,:,:,:) :: d_contra2l, d_l2contra
-      real, pointer, dimension(:,:,:,:) :: c_contra2l, c_l2contra
+      real, pointer, dimension(:,:,:,:) :: d_contra2l, d_l2contra, d_l2covari
+      real, pointer, dimension(:,:,:,:) :: c_contra2l, c_l2contra, c_l2covari
       real, pointer, dimension(:,:,:) :: agrid, grid, cgrid, dgrid
 
       c_contra2l => gridstruct%c_contra2l
@@ -2596,6 +2596,9 @@ endif
 
       c_l2contra => gridstruct%c_l2contra
       d_l2contra => gridstruct%d_l2contra
+
+      c_l2covari => gridstruct%c_l2covari
+      d_l2covari => gridstruct%d_l2covari
 
        grid => gridstruct% grid_64
       agrid => gridstruct%agrid_64
@@ -2663,6 +2666,13 @@ endif
             c_l2contra(1,2,i,j) = -a12/det
             c_l2contra(2,1,i,j) = -a21/det
             c_l2contra(2,2,i,j) =  a11/det
+
+            ! latlon to covari matrix 
+            c_l2covari(1,1,i,j) = a11
+            c_l2covari(1,2,i,j) = a21 
+            c_l2covari(2,1,i,j) = a12
+            c_l2covari(2,2,i,j) = a22
+
          enddo
       enddo
 
@@ -2720,6 +2730,13 @@ endif
             d_l2contra(1,2,i,j) = -a12/det
             d_l2contra(2,1,i,j) = -a21/det
             d_l2contra(2,2,i,j) =  a11/det
+
+            ! latlon to covari matrix
+            d_l2covari(1,1,i,j) =  a11
+            d_l2covari(1,2,i,j) =  a21
+            d_l2covari(2,1,i,j) =  a12
+            d_l2covari(2,2,i,j) =  a22
+ 
          enddo
       enddo
   end subroutine compute_conversion_matrices

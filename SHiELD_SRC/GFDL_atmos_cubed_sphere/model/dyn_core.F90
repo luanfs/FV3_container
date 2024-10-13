@@ -58,6 +58,7 @@ module dyn_core_mod
 
 #ifdef SW_DYNAMICS
   use test_cases_mod,      only: test_case, case9_forcing1, case9_forcing2, wind_NL2010, error_adv_zonal, error_density
+  use test_cases_mod,      only: case110_forcing_cgrid, case110_forcing_dgrid
 #endif
   use fv_regional_mod,     only: dump_field, exch_uv, H_STAGGER, U_STAGGER, V_STAGGER
   use fv_regional_mod,     only: a_step, p_step, k_step, n_step
@@ -90,8 +91,9 @@ contains
 
  subroutine dyn_core(npx, npy, npz, ng, sphum, nq, bdt, n_map, n_split, zvir, cp, akap, cappa, grav, hydrostatic,  &
                      duogrid, u,  v,  w, delz, pt, q, delp, pe, pk, phis, ws, omga, ptop, pfull, ua, va, &
-                     uc, vc, uc_old, vc_old, mfx, mfy, cx, cy, pkz, peln, q_con, ak, bk, &
-                     ks, gridstruct, flagstruct, neststruct, idiag, bd, domain, &
+                     uc, vc, uc_old, vc_old, mfx, mfy, cx, cy, pkz, peln, q_con, ak, bk, ks, &
+                     forcing_uc, forcing_vc, forcing_ud, forcing_vd, forcing_delp, &
+                     gridstruct, flagstruct, neststruct, idiag, bd, domain, &
                      init_step, i_pack, end_step, diss_est, consv, te0_2d, time_total)
     integer, intent(IN) :: npx
     integer, intent(IN) :: npy
@@ -129,7 +131,13 @@ contains
     real, intent(inout):: pe(bd%is-1:bd%ie+1, npz+1,bd%js-1:bd%je+1)  ! edge pressure (pascal)
     real, intent(inout):: peln(bd%is:bd%ie,npz+1,bd%js:bd%je)          ! ln(pe)
     real, intent(inout):: pk(bd%is:bd%ie,bd%js:bd%je, npz+1)        ! pe**kappa
-
+! forcing:
+    real, intent(INOUT) ::  forcing_uc(bd%isd:bd%ied+1,bd%jsd:bd%jed)
+    real, intent(INOUT) ::  forcing_vc(bd%isd:bd%ied+1,bd%jsd:bd%jed)
+    real, intent(INOUT) ::  forcing_ud(bd%isd:bd%ied  ,bd%jsd:bd%jed+1)
+    real, intent(INOUT) ::  forcing_vd(bd%isd:bd%ied  ,bd%jsd:bd%jed+1)
+    real, intent(INOUT) ::  forcing_delp(bd%isd:bd%ied  ,bd%jsd:bd%jed)
+ 
 !-----------------------------------------------------------------------
 ! Others:
     real,    parameter:: near0 = 1.E-8
@@ -595,7 +603,11 @@ endif
                  call gz_bc(gz, delz_regBC,bd,npx,npy,npz,mod(reg_bc_update_time,bc_time_interval*3600.), bc_time_interval*3600.)
               endif
            endif
-
+if(mpp_pe()==0)then
+        print*, maxval(abs(uc(is:ie+1,js:je,1))), &
+                maxval(abs(vc(is:ie,js:je+1,1))), &
+                maxval(abs(delpc(is:ie,js:je+1,1)))
+endif
 !$OMP parallel do default(none) shared(isd,ied,jsd,jed,npz,zh,gz)
            do k=1, npz+1
               do j=jsd,jed
@@ -755,6 +767,16 @@ endif
       endif
 
     endif
+
+#ifdef SW_DYNAMICS
+     call case110_forcing_cgrid(uc,vc,delpc, forcing_uc,forcing_vc,forcing_delp, dt, bd, gridstruct, npz)
+     !print*, 'uc', maxval(abs(uc(is:ie+1,js:je,1)-uc_old(is:ie+1,js:je,1)))/maxval(abs(uc_old(is:ie+1,js:je,1)))
+     print*, 'vc', maxval(abs(vc(is:ie,js:je+1,1)-vc_old(is:ie,js:je+1,1)))/maxval(abs(vc_old(is:ie,js:je+1,1)))
+
+#endif
+
+
+
                                                      call timing_on('d_sw')
 
 
@@ -999,7 +1021,7 @@ endif !if duo
 !enddo
 !!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!
-!
+stop
 
                                     call timing_on('dsw2456')
 !$OMP parallel do default(none) shared(npz,flagstruct,nord_v,pfull,damp_vt,hydrostatic, duogrid,last_step, &
@@ -1724,6 +1746,7 @@ endif
 
   endif
   if( allocated(pem) )   deallocate ( pem )
+  stop
 
 end subroutine dyn_core
 

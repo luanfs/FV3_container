@@ -184,6 +184,7 @@
       public :: read_namelist_test_case_nml, alpha, test_case
       public :: init_case
       public :: case9_forcing1, case9_forcing2, case51_forcing, wind_NL2010, error_adv_zonal, error_density
+      public :: case110_forcing_cgrid, case110_forcing_dgrid
       public :: init_double_periodic
       public :: checker_tracers
       public :: radius, omega, small_earth_scale
@@ -602,6 +603,7 @@
 !                  case 9 (Stratospheric Vortex Breaking Case)
 !
       subroutine init_case(u,v,w,pt,delp,q,phis, ps,pe,peln,pk,pkz,  uc,vc, ua,va, ak, bk,  &
+                           forcing_uc, forcing_vc, forcing_ud, forcing_vd, forcing_delp, &
                            gridstruct, flagstruct, npx, npy, npz, ng, ncnst, nwat, ndims, nregions,        &
                            dry_mass, mountain, moist_phys, hydrostatic, hybrid_z, delz, ze0, adiabatic, &
                            ks, npx_global, ptop, domain_in, tile_in, bd)
@@ -629,6 +631,12 @@
       real ,      intent(inout) :: delz(bd%is:,bd%js:,1:)
       real ,      intent(inout)   ::  ze0(bd%is:,bd%js:,1:)
 
+      real ,      intent(INOUT) ::  forcing_uc(bd%isd:bd%ied+1,bd%jsd:bd%jed)
+      real ,      intent(INOUT) ::  forcing_vc(bd%isd:bd%ied+1,bd%jsd:bd%jed)
+      real ,      intent(INOUT) ::  forcing_ud(bd%isd:bd%ied  ,bd%jsd:bd%jed+1)
+      real ,      intent(INOUT) ::  forcing_vd(bd%isd:bd%ied  ,bd%jsd:bd%jed+1)
+      real ,      intent(INOUT) ::  forcing_delp(bd%isd:bd%ied  ,bd%jsd:bd%jed)
+ 
       real ,      intent(inout) ::   ak(npz+1)
       real ,      intent(inout) ::   bk(npz+1)
 
@@ -811,17 +819,20 @@
       real(kind=R_GRID) :: phis_y_R(bd%is:bd%ie, bd%js:bd%je)
 
       real(kind=R_GRID) :: phis_error(bd%is:bd%ie, bd%js:bd%je)
+      real(kind=R_GRID) :: a11, a12, a21, a22
 
       real :: dz, zetam
 
       real(kind=R_GRID), pointer, dimension(:,:,:)   :: agrid, grid
       real(kind=R_GRID), pointer, dimension(:,:,:)   :: cgrid, dgrid
       real(kind=R_GRID), pointer, dimension(:,:)     :: area
+      real(kind=R_GRID), pointer, dimension(:,:,:,:) :: c_l2covari, d_l2covari
       real, pointer, dimension(:,:)     :: rarea, fC, f0
       real(kind=R_GRID), pointer, dimension(:,:,:)   :: ee1, ee2, en1, en2
       real(kind=R_GRID), pointer, dimension(:,:,:,:) :: ew, es
       real, pointer, dimension(:,:)     :: dx,dy, dxa,dya, rdxa, rdya, dxc,dyc
       real(kind=R_GRID) :: lat, lon
+      real(kind=R_GRID) :: u_forcing, v_forcing, phi_forcing
       real(kind=R_GRID) :: error_ha(1), error_hb(1), error_Ua(1), error_Uc(1), error_Ud(1)
       real(kind=R_GRID), allocatable :: errors_ha(:), errors_hb(:), errors_Ua(:), errors_Uc(:), errors_Ud(:)
       logical, pointer :: cubed_sphere, latlon
@@ -920,6 +931,9 @@
       acapN                         => gridstruct%acapN
       acapS                         => gridstruct%acapS
       globalarea                    => gridstruct%globalarea
+
+      c_l2covari => gridstruct%c_l2covari
+      d_l2covari => gridstruct%d_l2covari
 
       if (gridstruct%bounded_domain) then
          is2 = isd
@@ -1808,15 +1822,17 @@
          initWindsCase=initWindsCase5
 
       case(110)
+         call compute_conversion_matrices(bd, gridstruct)
          Ubar = (2.0*pi*radius)/(12.0*86400.0)
-         gh0  = 2.94e4
+         gh0 = 1000.d0*grav
          phis = 0.0
          do j=js,je
             do i=is,ie
-               delp(i,j,1) = gh0 !- (radius*omega*Ubar + (Ubar*Ubar)/2.) * &
-                             !( -1.*cos(agrid(i  ,j  ,1))*cos(agrid(i  ,j  ,2))*sin(alpha) + &
-                             !      sin(agrid(i  ,j  ,2))*cos(alpha) ) ** 2.0
- 
+               lat = agrid(i,j,1)
+               lon = agrid(i,j,2)
+               call case110_forcing(lat, lon, Ubar, gh0, u_forcing, v_forcing, phi_forcing)
+               delp(i,j,1) = grav*1000.d0
+               forcing_delp(i,j) = phi_forcing
             enddo
          enddo
          do j=js,je
@@ -1826,10 +1842,21 @@
                call mid_pt_sphere(p1, p2, p3)
                call get_unit_vect2(p1, p2, e2)
                call get_latlon_vector(p3, ex, ey)
-               !utmp = Ubar*cos(p3(2))
-               !vtmp = 0.d0
                call compute_wind_NL2010(utmp, vtmp, p3(1), p3(2), 0.d0, 12.d0*86400d0, Ubar)
                v(i,j,1) = utmp*inner_prod(e2,ex) + vtmp*inner_prod(e2,ey)
+
+               lat = p3(1)
+               lon = p3(2)
+               call case110_forcing(lat, lon, Ubar, gh0, u_forcing, v_forcing, phi_forcing)
+
+               ! convert forcing from latlon to covariant
+               a11 = c_l2covari(1,1,i,j)
+               a12 = c_l2covari(1,2,i,j)
+               a21 = c_l2covari(2,1,i,j)
+               a22 = c_l2covari(2,2,i,j)
+ 
+               forcing_uc(i,j) = a11*u_forcing + a12*v_forcing
+               forcing_vc(i,j) = a21*u_forcing + a22*v_forcing
             enddo
          enddo
          do j=js,je+1
@@ -1839,10 +1866,21 @@
                call mid_pt_sphere(p1, p2, p3)
                call get_unit_vect2(p1, p2, e1)
                call get_latlon_vector(p3, ex, ey)
-               !utmp = Ubar*cos(p3(2))
-               !vtmp = 0.d0
                call compute_wind_NL2010(utmp, vtmp, p3(1), p3(2), 0.d0, 12.d0*86400d0, Ubar)
                u(i,j,1) = utmp*inner_prod(e1,ex) + vtmp*inner_prod(e1,ey)
+
+               lat = p3(1)
+               lon = p3(2)
+               call case110_forcing(lat, lon, Ubar, gh0, u_forcing, v_forcing, phi_forcing)
+
+               ! convert forcing from latlon to covariant
+               a11 = d_l2covari(1,1,i,j)
+               a12 = d_l2covari(1,2,i,j)
+               a21 = d_l2covari(2,1,i,j)
+               a22 = d_l2covari(2,2,i,j)
+ 
+               forcing_ud(i,j) = a11*u_forcing + a12*v_forcing
+               forcing_vd(i,j) = a21*u_forcing + a22*v_forcing
             enddo
          enddo
 
@@ -1856,7 +1894,6 @@
          !call mpp_update_domains( ua, va, domain, gridtype=AGRID_PARAM)
          call atoc(ua,va,uc,vc,dx,dy,dxa,dya,npx,npy,ng, gridstruct%bounded_domain, domain, bd, gridstruct, flagstruct)
          initWindsCase=initWindsCase6
-
 
       case(6)
          Ubar = (2.0*pi*radius)/(12.0*86400.0)
@@ -5064,6 +5101,8 @@ end subroutine terminator_tracers
 !
 ! ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ !
 !-------------------------------------------------------------------------------
+
+
 
 !-------------------------------------------------------------------------------
 ! vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv !
@@ -9189,6 +9228,188 @@ subroutine compute_wind_NL2010(u, v, lat, lon, time, T, Ubar)
     endif
 
 end subroutine compute_wind_NL2010
+
+
+subroutine case110_forcing(lat, lon, Ubar, phibar, u_forcing, v_forcing, phi_forcing)
+    !--------------------------------------------------
+    !
+    !--------------------------------------------------
+    real(kind=R_GRID), intent(in):: lat, lon
+    real(kind=R_GRID), intent(in):: Ubar, phibar
+    real(kind=R_GRID), intent(inout) :: u_forcing, v_forcing, phi_forcing
+    real(kind=R_GRID) :: twolat, halflon, lonn
+    real(kind=R_GRID) :: u, v
+    real(kind=R_GRID) :: du_dlon, du_dlat
+    real(kind=R_GRID) :: dv_dlon, dv_dlat, dvcos_dlat
+    real(kind=R_GRID) :: du_dlon_cos, dvcos_dlat_cos
+    real(kind=R_GRID) :: f, fu, fv, twoomega, a
+    real(kind=R_GRID) :: u2tan, uvtan , u_cos
+    real(kind=R_GRID) :: twoUbar, halfUbar
+    real(kind=R_GRID) :: div, div2
+
+    a = radius
+    halfUbar = Ubar*0.5d0
+
+    lonn = lon + pi
+    twolat = lat*2.d0
+    halflon = lon*0.5d0
+
+    ! velocity
+    u = -Ubar*(dsin(halflon)**2)*dsin(twolat)*(dcos(lat)**2)
+    v = halfUbar*(dsin(lonn))*(dcos(lat)**3)
+
+    ! derivatives
+    du_dlon = -halfUbar*dsin(lonn)*dsin(twolat)*(dcos(lat)**2)
+    du_dlat = twoUbar*(dsin(halflon)**2)*(dcos(lat)**2)*&
+              (2.d0*dcos(twolat)-1.d0)
+
+    dv_dlon = halfUbar*dcos(lonn)*dcos(lat)**3
+    dv_dlat = -1.5d0*Ubar*dsin(lonn)*dsin(lat)*dcos(lat)**2
+
+    ! derivatives divided by cosine
+    !du_dlon = -halfUbar*dsin(lonn)*dsin(twolat)*(dcos(lat)**2)
+    du_dlon_cos = -halfUbar*dsin(lonn)*dsin(twolat)*dcos(lat)
+    dvcos_dlat  = -2.d0*Ubar*dsin(lonn)*dsin(lat)*dcos(lat)**3
+    dvcos_dlat_cos = -2.d0*Ubar*dsin(lonn)*dsin(lat)*dcos(lat)**2
+
+    ! Coriolis terms
+    twoomega = 2.d0*omega
+    f = twoomega*dsin(lat)
+    fu = f*u
+    fv = f*v
+
+    ! metric terms
+    u_cos = -Ubar*(dsin(halflon)**2)*dsin(twolat)*dcos(lat)
+    !u_cos = u/dcos(lat)
+    u2tan = u*u*dtan(lat)
+    uvtan = u*v*dtan(lat)
+
+    ! divergent
+    div = (du_dlon_cos + dvcos_dlat_cos)
+    div2 = -3.d0*Ubar*dsin(lonn)*dsin(lat)*dcos(lat)**2
+    div2 = div2/a
+    div = div/a
+
+    ! geopotential forcing
+    phi_forcing = phibar*div
+
+    !u, v forcing
+    u_forcing =  fv - (u_cos*du_dlon + v*du_dlat - uvtan)/a
+    v_forcing = -fu - (u_cos*dv_dlon + v*dv_dlat - u2tan)/a
+
+end subroutine case110_forcing
+
+!-------------------------------------------------------------------------------
+! vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv !
+!
+   subroutine case110_forcing_cgrid(uc,vc,delp, forcing_uc,forcing_vc,forcing_delp, dt, &
+                                    bd, gridstruct, npz)
+     type(fv_grid_bounds_type), intent(IN) :: bd
+     type(fv_grid_type), intent(IN), target :: gridstruct
+     integer, intent(IN) :: npz
+     real, intent(INOUT) :: uc(bd%isd:bd%ied+1,bd%jsd:bd%jed, 1:npz)
+     real, intent(INOUT) :: vc(bd%isd:bd%ied  ,bd%jsd:bd%jed+1, 1:npz)
+     real, intent(INOUT) :: delp(bd%isd:bd%ied ,bd%jsd:bd%jed, 1:npz)
+     real, intent(IN) :: forcing_uc(bd%isd:bd%ied+1,bd%jsd:bd%jed)
+     real, intent(IN) :: forcing_vc(bd%isd:bd%ied  ,bd%jsd:bd%jed+1)
+     real, intent(IN) :: forcing_delp(bd%isd:bd%ied ,bd%jsd:bd%jed)
+     real, intent(IN) :: dt
+     integer :: isd,ied,jsd,jed
+     integer :: is,ie,js,je
+     integer :: i,j
+     real :: dt2
+     real, pointer, dimension(:,:) :: rdxc, rdyc, rarea
+
+
+     is = bd%is
+     ie = bd%ie
+     js = bd%js
+     je = bd%je
+
+     rdxc => gridstruct%rdxc
+     rdyc => gridstruct%rdyc
+     rarea => gridstruct%rarea
+
+     dt2 = 0.5d0*dt
+     do j=js,je
+        do i=is,ie+1
+           uc(i,j,1) = uc(i,j,1) + dt2*rdxc(i,j)*forcing_vc(i,j)
+        enddo
+     enddo
+
+     do j=js,je+1
+        do i=is,ie
+           vc(i,j,1) = vc(i,j,1) + dt2*rdyc(i,j)*forcing_vc(i,j)
+        enddo
+     enddo
+
+     do j=js,je
+        do i=is,ie
+           delp(i,j,1) = delp(i,j,1) + dt2*rarea(i,j)*forcing_delp(i,j)
+        enddo
+     enddo
+     !if(mpp_pe()==0) then
+    !endif
+     !print*,'forcing', maxval(abs(delp(is:ie, js:je,1)-1000.d0*grav))/(1000.d0*grav)
+   end subroutine case110_forcing_cgrid
+!
+! ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ !
+!-------------------------------------------------------------------------------
+
+!-------------------------------------------------------------------------------
+! vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv !
+!
+   subroutine case110_forcing_dgrid(u,v,delp, forcing_ud,forcing_vd,forcing_delp, dt, &
+                                    bd, gridstruct, npz)
+     type(fv_grid_bounds_type), intent(IN) :: bd
+     type(fv_grid_type), intent(IN), target :: gridstruct
+     integer, intent(IN) :: npz
+     real, intent(INOUT) :: u(bd%isd:bd%ied   , bd%jsd:bd%jed+1,1:npz)
+     real, intent(INOUT) :: v(bd%isd:bd%ied+1 , bd%jsd:bd%jed  ,1:npz)
+     real, intent(INOUT) :: delp(bd%isd:bd%ied, bd%jsd:bd%jed  ,1:npz)
+     real, intent(IN) :: forcing_ud(bd%isd:bd%ied  , bd%jsd:bd%jed+1)
+     real, intent(IN) :: forcing_vd(bd%isd:bd%ied+1, bd%jsd:bd%jed  )
+     real, intent(IN) :: forcing_delp(bd%isd:bd%ied ,bd%jsd:bd%jed  )
+     real, intent(IN) :: dt
+     integer :: isd,ied,jsd,jed
+     integer :: is,ie,js,je
+     integer :: i,j
+     real, pointer, dimension(:,:) :: rdx, rdy, rarea
+
+     is = bd%is
+     ie = bd%ie
+     js = bd%js
+     je = bd%je
+
+     rdx => gridstruct%rdx
+     rdy => gridstruct%rdy
+     rarea => gridstruct%rarea
+
+     do j=js,je
+        do i=is,ie+1
+           v(i,j,1) = v(i,j,1) + dt*rdx(i,j)*forcing_vd(i,j)
+        enddo
+     enddo
+
+     do j=js,je+1
+        do i=is,ie
+           u(i,j,1) = u(i,j,1) + dt*rdy(i,j)*forcing_ud(i,j)
+        enddo
+     enddo
+
+     do j=js,je
+        do i=is,ie
+           delp(i,j,1) = delp(i,j,1) + dt*rarea(i,j)*forcing_delp(i,j)
+        enddo
+     enddo
+
+
+   end subroutine case110_forcing_dgrid
+!
+! ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ !
+!-------------------------------------------------------------------------------
+
+
 
 subroutine error_adv_zonal(bd, delp, flagstruct, gridstruct, domain, time, init_step_atmos)
    !--------------------------------------------------

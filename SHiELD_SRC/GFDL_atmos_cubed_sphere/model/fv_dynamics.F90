@@ -77,6 +77,7 @@ contains
                         reproduce_sum, kappa, cp_air, zvir, ptop, ks, ncnst, n_split,     &
                         q_split, u, v, w, delz, hydrostatic, duogrid, pt, delp, q,   &
                         ps, pe, pk, peln, pkz, phis, q_con, omga, ua, va, uc, vc, uc_old, vc_old,&
+                        forcing_uc, forcing_vc, forcing_ud, forcing_vd, forcing_delp, &
                         ak, bk, mfx, mfy, cx, cy, ze0, hybrid_z, &
                         gridstruct, flagstruct, neststruct, idiag, bd, &
                         parent_grid, domain, inline_mp, diss_est, time_total)
@@ -113,7 +114,12 @@ contains
     real, intent(inout) ::  ze0(bd%is:, bd%js: ,1:) ! height at edges (m); non-hydrostatic
     real, intent(inout) :: diss_est(bd%isd:bd%ied  ,bd%jsd:bd%jed, npz) ! diffusion estimate for SKEB
 ! ze0 no longer used
-
+    real, intent(INOUT) ::  forcing_uc(bd%isd:bd%ied+1,bd%jsd:bd%jed)
+    real, intent(INOUT) ::  forcing_vc(bd%isd:bd%ied+1,bd%jsd:bd%jed)
+    real, intent(INOUT) ::  forcing_ud(bd%isd:bd%ied  ,bd%jsd:bd%jed+1)
+    real, intent(INOUT) ::  forcing_vd(bd%isd:bd%ied  ,bd%jsd:bd%jed+1)
+    real, intent(INOUT) ::  forcing_delp(bd%isd:bd%ied  ,bd%jsd:bd%jed)
+ 
 !-----------------------------------------------------------------------
 ! Auxilliary pressure arrays:
 ! The 5 vars below can be re-computed from delp and ptop.
@@ -486,6 +492,7 @@ contains
       call dyn_core(npx, npy, npz, ng, sphum, nq, mdt, n_map, n_split, zvir, cp_air, akap, cappa, grav, hydrostatic, &
                     duogrid, u, v, w, delz, pt, q, delp, pe, pk, phis, ws, omga, ptop, pfull, ua, va,           &
                     uc, vc, uc_old, vc_old, mfx, mfy, cx, cy, pkz, peln, q_con, ak, bk, ks, &
+                    forcing_uc, forcing_vc, forcing_ud, forcing_vd, forcing_delp, &
                     gridstruct, flagstruct, neststruct, idiag, bd, &
                     domain, n_map==1, i_pack, last_step, diss_est, &
                     consv_te, te_2d, time_total)
