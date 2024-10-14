@@ -7,3 +7,5 @@ SHiELD_SRC/GFDL_atmos_cubed_sphere/tools/*.swp
 *.swp
 *.swo
 *pycache__/
+*.out
+*stdout
