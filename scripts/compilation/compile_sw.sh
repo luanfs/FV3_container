@@ -16,4 +16,4 @@ cd ../../SHiELD_build/Build
 ./COMPILE solo $model $COMP intel 64bit $clean
 
 # Copy the log file to test directory
-cp -r build_solo_$model.$COMP.64bit.intel.out ../../gaea/compilation/build_solo_$model.$COMP.64bit.intel.out
+cp -r build_solo_$model.$COMP.64bit.intel.out ../../scripts/compilation/build_solo_$model.$COMP.64bit.intel.out
