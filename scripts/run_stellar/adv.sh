@@ -176,7 +176,7 @@ for ((j=1; j<=$Ng; j++)); do
             echo N$N g$gtype dg$dg a$alpha  tc$tc dt$dt
             sbatch ./fv3_sw.csh $tc $N $dt $gtype $dg $tcname $alpha $days $hours $minutes $seconds $COMP $n_split $hord $dd $adv $mf
 
-	    exit
+	    #exit
             #sleep 10
         done
     done
