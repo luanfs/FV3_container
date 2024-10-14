@@ -1,5 +1,5 @@
 #!/bin/tcsh 
-#SBATCH --output=./stdout/%x.o%j
+#SBATCH --output=/home/ls9640/SHiELD_duo/scripts/run_stellar/stdout/%x.o%j
 #SBATCH --job-name=solo.sw
 #SBATCH --partition=batch
 #SBATCH --qos=urgent
