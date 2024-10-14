@@ -1,5 +1,5 @@
 #!/bin/tcsh 
-#SBATCH --output=/ncrc/home2/Luan.Santos/SHiELD_duo/scritps/run_gaea/stdout/%x.o%j
+#SBATCH --output=/ncrc/home2/Luan.Santos/SHiELD_duo/scripts/run_gaea/stdout/%x.o%j
 #SBATCH --job-name=solo.sw
 #SBATCH --partition=batch
 #SBATCH --qos=urgent

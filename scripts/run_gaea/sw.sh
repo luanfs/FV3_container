@@ -8,7 +8,9 @@
 COMP="repro"      # choices:  debug, repro, prod
 #COMP="debug"
 clear
-./compile.sh $COMP
+cd ../compilation
+./compile.sh $COMP noclean
+cd -
 
 #----------------------------------------------------------------------------------------------
 # Modify this part for your purposes
