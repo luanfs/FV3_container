@@ -40,6 +40,8 @@ set mf="${17}"
 set BUILD_AREA = "/home/ls9640/SHiELD_duo/SHiELD_build" 
 set SCRATCHROOT = "/scratch/cimes/ls9640"
 set SCRIPT_AREA = /home/ls9640/SHiELD_duo/SHiELD_build
+#set stellar environement
+source /home/ls9640/workspace_stellar/site/environment.stellar.sh_ok
 
 # case specific details
 @ Np1 = $N + 1
@@ -235,7 +237,9 @@ ${GRID}.${MODE}
 EOF
 
 cat >! input.nml <<EOF
-
+ &fms_affinity_nml
+    affinity = .false.
+/
  &fms_io_nml
        checksum_required   = .false.
        max_files_r = 100,
