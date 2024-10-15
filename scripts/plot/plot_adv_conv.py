@@ -5,17 +5,18 @@ from matplotlib import ticker, cm, colors, colorbar
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import colorsys
-import dask
 import os.path
 import math
 
-graphdir='/gpfs/f5/scratch/Luan.Santos/gfdl_w/graphs_solo_sw/'
-datadir='/gpfs/f5/scratch/Luan.Santos/gfdl_w/solo_sw/'
+graphdir='/scratch/cimes/ls9640/graphs_solo_sw/'
+datadir='/scratch/cimes/ls9640/solo_sw/'
+#graphdir='/gpfs/f5/scratch/Luan.Santos/gfdl_w/graphs_solo_sw/'
+#datadir='/gpfs/f5/scratch/Luan.Santos/gfdl_w/solo_sw/'
 figformat='png'
 
 #--------------------------------------------------------------------------------------------------------
 # test case
-tc = -3
+tc = -6
 
 # 1d advection scheme
 hords = (0,8)
@@ -39,7 +40,7 @@ mfs = (1,1,1,1)
 
 # values of N
 Ns = (48, 96, 192, 384, 768)
-#Ns = (48, 96, 192, 384)
+Ns = (48, 96, 192, 384)
 #Ns = (48, 96, 192, )
 #Ns = (96, 192, 384, 768)
 #Ns = (48, 96, )
@@ -124,7 +125,7 @@ for g in range(0, len(gtypes)):
         for N in Ns:
             # Directory where the netcdf files are
             filepath = datadir+"C"+str(N)+".sw."+basename+".tc"+str(tc)+".alpha"+str(alpha)\
-            +".g"+str(gtype)+"."+dg+".adv"+str(adv)+".hord"+str(hord)+".mf"+str(mf)+".tf"+str(Tf)+"/"
+            +".g"+str(gtype)+"."+dg+".adv"+str(adv)+".hord"+str(hord)+".mf"+str(mf)+".tf"+str(Tf)+"/rundir/"
             #print(filepath)
             # Loop over tiles
             for tile in range(1,7):
@@ -137,8 +138,8 @@ for g in range(0, len(gtypes)):
 
                 if files_exist:
                     # Load the files
-                    data = xr.open_dataset(atmos_file, decode_times=False, chunks={'time': 5}).squeeze()
-                    grid = xr.open_dataset(grid_file , decode_times=False, chunks={'time': 5}).squeeze()
+                    data = xr.open_dataset(atmos_file, decode_times=False)
+                    grid = xr.open_dataset(grid_file , decode_times=False)
                     areas = grid.area[:,:].values
 
                     # Final timestep

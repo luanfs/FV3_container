@@ -2,8 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os.path
 
-graphdir='/gpfs/f5/scratch/Luan.Santos/gfdl_w/graphs_solo_sw/'
-datadir='/gpfs/f5/scratch/Luan.Santos/gfdl_w/solo_sw/'
+graphdir='/scratch/cimes/ls9640/graphs_solo_sw/'
+datadir='/scratch/cimes/ls9640/solo_sw/'
+#graphdir='/gpfs/f5/scratch/Luan.Santos/gfdl_w/graphs_solo_sw/'
+#datadir='/gpfs/f5/scratch/Luan.Santos/gfdl_w/solo_sw/'
 figformat='png'
 
 #--------------------------------------------------------------------------------------------------------
@@ -12,8 +14,8 @@ tc = -3
 
 # value of N
 #N = 192
-#N = 384
-N = 768
+N = 384
+#N = 768
 #N = 48
 #N = 96
 
@@ -127,10 +129,10 @@ for g in range(0, len(gtypes)):
        # Directory where the netcdf files are
        if tc>1:
          filepath = datadir+"C"+str(N)+".sw."+basename+".tc"+str(tc)+".alpha"+str(alpha)\
-           +".g"+str(gtype)+"."+dg+".adv"+str(adv)+".hord"+str(hord)+'.dd'+str(dd)+".mf"+str(mf)+".tf"+str(Tf)+"/"
+           +".g"+str(gtype)+"."+dg+".adv"+str(adv)+".hord"+str(hord)+'.dd'+str(dd)+".mf"+str(mf)+".tf"+str(Tf)+"/rundir/"
        else:
          filepath = datadir+"C"+str(N)+".sw."+basename+".tc"+str(tc)+".alpha"+str(alpha)\
-       +".g"+str(gtype)+"."+dg+".adv"+str(adv)+".hord"+str(hord)+".mf"+str(mf)+".tf"+str(Tf)+"/"
+       +".g"+str(gtype)+"."+dg+".adv"+str(adv)+".hord"+str(hord)+".mf"+str(mf)+".tf"+str(Tf)+"/rundir/"
 
        schemes_label.append(advname+"."+hord_name+".mf"+str(mf))
        #schemes_label.append(advname+"."+hord_name)

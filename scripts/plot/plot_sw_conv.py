@@ -5,12 +5,14 @@ from matplotlib import ticker, cm, colors, colorbar
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import colorsys
-import dask
+#import dask
 import os.path
 import math
 
-graphdir='/gpfs/f5/scratch/Luan.Santos/gfdl_w/graphs_solo_sw/'
-datadir='/gpfs/f5/scratch/Luan.Santos/gfdl_w/solo_sw/'
+#graphdir='/gpfs/f5/scratch/Luan.Santos/gfdl_w/graphs_solo_sw/'
+#datadir='/gpfs/f5/scratch/Luan.Santos/gfdl_w/solo_sw/'
+graphdir='/scratch/cimes/ls9640/graphs_solo_sw/'
+datadir='/scratch/cimes/ls9640/solo_sw/'
 figformat='png'
 
 #--------------------------------------------------------------------------------------------------------
@@ -37,8 +39,8 @@ gtypes = (0,2)
 #gtypes = (0,2)
 
 #duogrid
-#dgs = (2, 2, 2, 2)
-dgs = (1, 1, 1, 1)
+dgs = (2, 2, 2, 2)
+#dgs = (1, 1, 1, 1)
 #dgs = (0, 0, 0, 0)
 
 #mass fixers
@@ -66,7 +68,7 @@ ngrids = len(Ns)
 if tc==2 :
     basename='geobalance'
     alpha = 45
-    Tf = 5
+    Tf = 3
  
 else:
    print('ERROR: invalid initial condition')
@@ -118,8 +120,7 @@ for g in range(0, len(gtypes)):
         for N in Ns:
             # Directory where the netcdf files are
             filepath = datadir+"C"+str(N)+".sw."+basename+".tc"+str(tc)+".alpha"+str(alpha)\
-                 +".g"+str(gtype)+"."+dg+".adv"+str(adv)+".hord"+str(hord)+'.dd'+str(dd)+".mf"+mf+".tf"+str(Tf)+"/"
-            #print(filepath)
+                 +".g"+str(gtype)+"."+dg+".adv"+str(adv)+".hord"+str(hord)+'.dd'+str(dd)+".mf"+mf+".tf"+str(Tf)+"/rundir/"
             # Loop over tiles
             for tile in range(1,7):
                 # Files to be opened
@@ -131,8 +132,8 @@ for g in range(0, len(gtypes)):
 
                 if files_exist:
                     # Load the files
-                    data = xr.open_dataset(atmos_file, decode_times=False, chunks={'time': 5}).squeeze()
-                    grid = xr.open_dataset(grid_file , decode_times=False, chunks={'time': 5}).squeeze()
+                    data = xr.open_dataset(atmos_file, decode_times=False)
+                    grid = xr.open_dataset(grid_file , decode_times=False)
                     areas = grid.area[:,:].values
 
                     # Final timestep
