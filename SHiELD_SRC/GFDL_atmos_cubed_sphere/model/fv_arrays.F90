@@ -1813,10 +1813,10 @@ contains
     allocate (   Atm%uc_old(isd:ied+1,jsd:jed  ,npz) )
     allocate (   Atm%vc_old(isd:ied  ,jsd:jed+1,npz) )
 
-    allocate (   Atm%forcing_uc(isd:ied+1,jsd:jed) )
-    allocate (   Atm%forcing_vc(isd:ied+1,jsd:jed) )
-    allocate (   Atm%forcing_ud(isd:ied,jsd:jed+1) )
-    allocate (   Atm%forcing_vd(isd:ied,jsd:jed+1) )
+    allocate (   Atm%forcing_uc(isd:ied+1,jsd:jed  ) )
+    allocate (   Atm%forcing_vc(isd:ied  ,jsd:jed+1) )
+    allocate (   Atm%forcing_ud(isd:ied  ,jsd:jed+1) )
+    allocate (   Atm%forcing_vd(isd:ied+1,jsd:jed  ) )
     allocate (   Atm%forcing_delp(isd:ied,jsd:jed) )
 
 

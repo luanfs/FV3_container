@@ -631,10 +631,10 @@
       real ,      intent(inout) :: delz(bd%is:,bd%js:,1:)
       real ,      intent(inout)   ::  ze0(bd%is:,bd%js:,1:)
 
-      real ,      intent(INOUT) ::  forcing_uc(bd%isd:bd%ied+1,bd%jsd:bd%jed)
-      real ,      intent(INOUT) ::  forcing_vc(bd%isd:bd%ied+1,bd%jsd:bd%jed)
+      real ,      intent(INOUT) ::  forcing_uc(bd%isd:bd%ied+1,bd%jsd:bd%jed  )
+      real ,      intent(INOUT) ::  forcing_vc(bd%isd:bd%ied  ,bd%jsd:bd%jed+1)
       real ,      intent(INOUT) ::  forcing_ud(bd%isd:bd%ied  ,bd%jsd:bd%jed+1)
-      real ,      intent(INOUT) ::  forcing_vd(bd%isd:bd%ied  ,bd%jsd:bd%jed+1)
+      real ,      intent(INOUT) ::  forcing_vd(bd%isd:bd%ied+1,bd%jsd:bd%jed  )
       real ,      intent(INOUT) ::  forcing_delp(bd%isd:bd%ied  ,bd%jsd:bd%jed)
  
       real ,      intent(inout) ::   ak(npz+1)
@@ -9289,6 +9289,10 @@ subroutine case110_forcing(lat, lon, Ubar, phibar, u_forcing, v_forcing, phi_for
     div2 = -3.d0*Ubar*dsin(lonn)*dsin(lat)*dcos(lat)**2
     div2 = div2/a
     div = div/a
+    !if(mpp_pe()==0)then
+    !if(abs(div-div2)>10.d0**(-16))then
+    !   print*, div, div2, abs(div-div2)
+    !endif
 
     ! geopotential forcing
     phi_forcing = phibar*div

@@ -115,9 +115,9 @@ contains
     real, intent(inout) :: diss_est(bd%isd:bd%ied  ,bd%jsd:bd%jed, npz) ! diffusion estimate for SKEB
 ! ze0 no longer used
     real, intent(INOUT) ::  forcing_uc(bd%isd:bd%ied+1,bd%jsd:bd%jed)
-    real, intent(INOUT) ::  forcing_vc(bd%isd:bd%ied+1,bd%jsd:bd%jed)
+    real, intent(INOUT) ::  forcing_vc(bd%isd:bd%ied  ,bd%jsd:bd%jed+1)
     real, intent(INOUT) ::  forcing_ud(bd%isd:bd%ied  ,bd%jsd:bd%jed+1)
-    real, intent(INOUT) ::  forcing_vd(bd%isd:bd%ied  ,bd%jsd:bd%jed+1)
+    real, intent(INOUT) ::  forcing_vd(bd%isd:bd%ied+1,bd%jsd:bd%jed)
     real, intent(INOUT) ::  forcing_delp(bd%isd:bd%ied  ,bd%jsd:bd%jed)
  
 !-----------------------------------------------------------------------

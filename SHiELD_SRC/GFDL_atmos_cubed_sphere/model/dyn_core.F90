@@ -272,6 +272,9 @@ contains
     iep1 = ie + 1
     jep1 = je + 1
 
+    if(mpp_pe()==0)then
+      print*, 'time in days: ', time_total/86400d0, 'adv', flagstruct%adv_scheme, 'hord', flagstruct%hord_mt
+    endif
     if ( .not.hydrostatic ) then
 
          rgrav = 1.0/grav
@@ -603,11 +606,11 @@ endif
                  call gz_bc(gz, delz_regBC,bd,npx,npy,npz,mod(reg_bc_update_time,bc_time_interval*3600.), bc_time_interval*3600.)
               endif
            endif
-if(mpp_pe()==0)then
-        print*, maxval(abs(uc(is:ie+1,js:je,1))), &
-                maxval(abs(vc(is:ie,js:je+1,1))), &
-                maxval(abs(delpc(is:ie,js:je+1,1)))
-endif
+!if(mpp_pe()==0)then
+!        print*, maxval(abs(uc(is:ie+1,js:je,1))), &
+!                maxval(abs(vc(is:ie,js:je+1,1))), &
+!                maxval(abs(delpc(is:ie,js:je+1,1)))
+!endif
 !$OMP parallel do default(none) shared(isd,ied,jsd,jed,npz,zh,gz)
            do k=1, npz+1
               do j=jsd,jed
@@ -771,7 +774,7 @@ endif
 #ifdef SW_DYNAMICS
      call case110_forcing_cgrid(uc,vc,delpc, forcing_uc,forcing_vc,forcing_delp, dt, bd, gridstruct, npz)
      !print*, 'uc', maxval(abs(uc(is:ie+1,js:je,1)-uc_old(is:ie+1,js:je,1)))/maxval(abs(uc_old(is:ie+1,js:je,1)))
-     print*, 'vc', maxval(abs(vc(is:ie,js:je+1,1)-vc_old(is:ie,js:je+1,1)))/maxval(abs(vc_old(is:ie,js:je+1,1)))
+     !print*, 'vc', maxval(abs(vc(is:ie,js:je+1,1)-vc_old(is:ie,js:je+1,1)))/maxval(abs(vc_old(is:ie,js:je+1,1)))
 
 #endif
 
@@ -1021,7 +1024,7 @@ endif !if duo
 !enddo
 !!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!
-stop
+!stop
 
                                     call timing_on('dsw2456')
 !$OMP parallel do default(none) shared(npz,flagstruct,nord_v,pfull,damp_vt,hydrostatic, duogrid,last_step, &
