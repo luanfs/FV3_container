@@ -57,7 +57,7 @@ module dyn_core_mod
   use fv_regional_mod,      only: delz_regBC ! TEMPORARY --- lmh
 
 #ifdef SW_DYNAMICS
-  use test_cases_mod,      only: test_case, case9_forcing1, case9_forcing2, wind_NL2010, error_adv_zonal, error_density
+  use test_cases_mod,      only: test_case, case9_forcing1, case9_forcing2, wind_NL2010, error_adv_zonal, error_density,  error_divwind110
   use test_cases_mod,      only: case110_forcing_cgrid, case110_forcing_dgrid
 #endif
   use fv_regional_mod,     only: dump_field, exch_uv, H_STAGGER, U_STAGGER, V_STAGGER
@@ -1645,6 +1645,11 @@ endif
               allocated(heat_source), npz, nq, sphum, flagstruct%nwat, zvir, ptop, hydrostatic, bd, fv_time, n_map, it)
       endif
 
+#ifdef SW_DYNAMICS
+     call case110_forcing_dgrid(u,v,delp, forcing_ud,forcing_vd,forcing_delp, dt, bd, gridstruct, npz)
+#endif
+
+
 !-----------------------------------------------------
   enddo   ! time split loop
 !-----------------------------------------------------
@@ -1653,6 +1658,9 @@ endif
          init_step_atmos = time_total==bdt
          call error_adv_zonal(bd, delp, flagstruct, gridstruct, domain, time_total, init_step_atmos)
          call error_density(npz, nq, bd, q, flagstruct, gridstruct, domain, time_total, init_step_atmos)
+      else if(test_case==110)then
+         init_step_atmos = time_total==bdt
+         call error_divwind110(bd, delp, flagstruct, gridstruct, domain, time_total, init_step_atmos)
       end if
 #endif
 
@@ -1749,7 +1757,7 @@ endif
 
   endif
   if( allocated(pem) )   deallocate ( pem )
-  stop
+  !stop
 
 end subroutine dyn_core
 

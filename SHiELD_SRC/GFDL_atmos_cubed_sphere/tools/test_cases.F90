@@ -183,7 +183,7 @@
       public :: pz0, zz0
       public :: read_namelist_test_case_nml, alpha, test_case
       public :: init_case
-      public :: case9_forcing1, case9_forcing2, case51_forcing, wind_NL2010, error_adv_zonal, error_density
+      public :: case9_forcing1, case9_forcing2, case51_forcing, wind_NL2010, error_adv_zonal, error_density, error_divwind110
       public :: case110_forcing_cgrid, case110_forcing_dgrid
       public :: init_double_periodic
       public :: checker_tracers
@@ -9252,7 +9252,7 @@ subroutine case110_forcing(lat, lon, Ubar, phibar, u_forcing, v_forcing, phi_for
 
     lonn = lon + pi
     twolat = lat*2.d0
-    halflon = lon*0.5d0
+    halflon = lonn*0.5d0
 
     ! velocity
     u = -Ubar*(dsin(halflon)**2)*dsin(twolat)*(dcos(lat)**2)
@@ -9299,7 +9299,7 @@ subroutine case110_forcing(lat, lon, Ubar, phibar, u_forcing, v_forcing, phi_for
 
     !u, v forcing
     u_forcing =  fv - (u_cos*du_dlon + v*du_dlat - uvtan)/a
-    v_forcing = -fu - (u_cos*dv_dlon + v*dv_dlat - u2tan)/a
+    v_forcing = -fu - (u_cos*dv_dlon + v*dv_dlat + u2tan)/a
 
 end subroutine case110_forcing
 
@@ -9573,6 +9573,95 @@ subroutine error_density(npz, nq, bd, q, flagstruct, gridstruct, domain, time, i
       close(59)
    endif
 end subroutine error_density
+
+
+
+subroutine error_divwind110(bd, delp, flagstruct, gridstruct, domain, time, init_step_atmos)
+   !--------------------------------------------------
+   ! Compute the error of the advection problem when the zonal wind is used
+   !--------------------------------------------------
+   type(fv_grid_bounds_type), intent(IN) :: bd
+   real ,      intent(INOUT) ::   delp(bd%isd:bd%ied,bd%jsd:bd%jed  )
+   type(fv_flags_type), target, intent(IN) :: flagstruct
+   type(fv_grid_type), intent(INOUT), target :: gridstruct
+   type(domain2d), intent(INOUT) :: domain
+   real(kind=R_GRID) :: delp_exact(bd%isd:bd%ied  ,bd%jsd:bd%jed)
+   real(kind=R_GRID) :: error_delp(bd%isd:bd%ied  ,bd%jsd:bd%jed)
+   real(kind=R_GRID), pointer, dimension(:,:,:)   :: agrid
+   real(kind=R_GRID), pointer, dimension(:,:,:)   :: cgrid
+   real(kind=R_GRID), pointer, dimension(:,:,:)   :: dgrid
+   real, intent(in)  ::   time
+   logical, intent(in) :: init_step_atmos
+
+   ! aux vars
+   real(kind=R_GRID) :: lat, lon
+
+   ! bounds
+   integer :: i, j
+   integer :: is, ie, js, je
+
+   real(kind=R_GRID) :: linf_error, linf_norm
+   real(kind=R_GRID) :: l1_error, l1_norm
+   real(kind=R_GRID) :: l2_error, l2_norm
+   integer :: master, nprocs
+   character (len=128):: filename_error ! filename output
+
+   is  = bd%is
+   ie  = bd%ie
+   js  = bd%js
+   je  = bd%je
+
+   agrid => gridstruct%agrid_64
+   cgrid => gridstruct%cgrid_64
+   dgrid => gridstruct%dgrid_64
+
+   !if(mpp_pe()==0) print*, time, init_step_atmos
+   !if (init_step_atmos) then
+   !   call  calc_mass(gridstruct%m0, delp, bd, gridstruct)
+   !else
+   !   call  calc_mass(gridstruct%mf, delp, bd, gridstruct)
+   !endif
+   !if(mpp_pe()==0) print*, time, gridstruct%m0, gridstruct%mf, abs(gridstruct%mf-gridstruct%m0)/gridstruct%m0
+   ! A grid
+   !do i = is, ie
+   !   do j = js, je
+   !      lon = agrid(i,j,1)
+   !      lat = agrid(i,j,2)
+   !   enddo
+   !enddo
+
+   ! get error
+   delp_exact = 1000.d0*grav
+   error_delp = delp_exact-delp
+
+   ! get norms
+   call calc_linf_norm(linf_norm , delp_exact, bd, 0, 0)
+   call calc_linf_norm(linf_error, error_delp, bd, 0, 0)
+   linf_error = linf_error/linf_norm
+
+   call calc_l1_norm(l1_norm , delp_exact, bd, gridstruct, 0, 0)
+   call calc_l1_norm(l1_error, error_delp, bd, gridstruct, 0, 0)
+   l1_error = l1_error/l1_norm
+
+   call calc_l2_norm(l2_norm , delp_exact, bd, gridstruct, 0, 0)
+   call calc_l2_norm(l2_error, error_delp, bd, gridstruct, 0, 0)
+   l2_error = l2_error/l2_norm
+
+ 
+   master = mpp_root_pe()
+   if (mpp_pe()==master) then
+      filename_error = "error_delp.txt"
+      ! open the file
+      if(init_step_atmos) then
+         open(25, file=filename_error, status='replace')
+      else
+         open(25, file=filename_error, status='old', position='append')
+      endif
+      write(25,*) linf_error, l1_error, l2_error
+      close(25)
+      print*, linf_error, l1_error, l2_error
+   endif
+end subroutine error_divwind110
 
 
 
