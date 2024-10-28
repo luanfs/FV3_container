@@ -80,6 +80,8 @@ else
 endif
 echo $OUTDIR
 
+# convert alpha to radians
+set alpha = `awk 'BEGIN { printf "%.10f", '"$alpha"' * 0.01745329251 }'`
 
 # directory structure
 set WORKDIR    = ${SCRATCHROOT}/${RELEASE}/${OUTDIR}

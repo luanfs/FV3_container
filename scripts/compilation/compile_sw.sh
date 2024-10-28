@@ -10,10 +10,11 @@ fi
 
 COMP="$1"
 clean="$2"
+compiler="intel"
 
 model=sw
 cd ../../SHiELD_build/Build
-./COMPILE solo $model $COMP intel 64bit $clean
+./COMPILE solo $model $COMP $compiler 64bit $clean
 
 # Copy the log file to test directory
-cp -r build_solo_$model.$COMP.64bit.intel.out ../../scripts/compilation/build_solo_$model.$COMP.64bit.intel.out
+cp -r build_solo_$model.$COMP.64bit.$compiler.out ../../scripts/compilation/build_solo_$model.$COMP.64bit.$compiler.out

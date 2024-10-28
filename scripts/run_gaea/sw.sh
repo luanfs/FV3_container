@@ -9,7 +9,7 @@ COMP="repro"      # choices:  debug, repro, prod
 #COMP="debug"
 clear
 cd ../compilation
-./compile.sh $COMP noclean
+./compile_sw.sh $COMP noclean
 cd -
 
 #----------------------------------------------------------------------------------------------
