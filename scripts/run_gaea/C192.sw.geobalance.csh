@@ -19,7 +19,7 @@ set SCRIPT_AREA = /ncrc/home2/Luan.Santos/SHiELD_duo/SHiELD_build
 # Simulation parameters
 set adv=2             # 1-Putman and Lin 2007 scheme; 2-LT2
 set dg=1              # duogrid (always 1)
-set gtype=0           # grid type(0-equiedge; 2-equiangular)
+set gtype=2           # grid type(0-equiedge; 2-equiangular)
 set hord=5            # PPM scheme
 set N=96              # N
 
@@ -32,15 +32,14 @@ set tf=100            # final time
 
 # set vorticity damping coefficient
 if ($hord == "5") then
-   set do_vort_damp=.true.
    if ($adv == "1") then
-      set vort_damp=0.0 #3
+      set vort_damp=0 #3
    else
       set vort_damp=0.04 #4
+      set vort_damp=0
    endif
 else
-   set vort_damp=0.0
-   set do_vort_damp=.false.
+   set vort_damp=0
 endif
 
 ##################################################################################
@@ -72,10 +71,12 @@ else
   set dgflag=".false."
 endif
 
-if ($do_vort_damp == ".true.") then
-  set OUTDIR="${GRID}.${MEMO}.alpha$alpha_deg.g$gtype.$dgname.adv$adv.hord$hord.vd$vort_damp.tf$tf"
-else
+if ($vort_damp == "0") then
   set OUTDIR="${GRID}.${MEMO}.alpha$alpha_deg.g$gtype.$dgname.adv$adv.hord$hord.tf$tf"
+  set do_vort_damp=.false.
+else
+  set OUTDIR="${GRID}.${MEMO}.alpha$alpha_deg.g$gtype.$dgname.adv$adv.hord$hord.vd$vort_damp.tf$tf"
+  set do_vort_damp=.true.
 endif
 
 # directory structure
@@ -258,7 +259,7 @@ cat > input.nml <<EOF
        npy      = $npy
        ntiles   = 6
        npz    = $npz
-       grid_type = 0
+       grid_type = $gtype
        fv_debug = .F.
        beta = 0.
        n_split = $n_split

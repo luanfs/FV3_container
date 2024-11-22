@@ -20,7 +20,7 @@ set SCRIPT_AREA = /ncrc/home2/Luan.Santos/SHiELD_duo/SHiELD_build
 set adv=2             # 1-Putman and Lin 2007 scheme; 2-LT2
 set dg=1              # duogrid (always 1)
 set gtype=0           # grid type(0-equiedge; 2-equiangular)
-set hord=8            # PPM scheme
+set hord=5            # PPM scheme
 set N=192             # N
 
 set dt_atmos="600"    # atmos time step
@@ -31,15 +31,20 @@ set dgflag=".true."
 
 # set vorticity damping coefficient
 if ($hord == "5") then
-   set do_vort_damp=.true.
    if ($adv == "1") then
-      set vort_damp=0.03
+      set vort_damp=0.04
    else
-      set vort_damp=0.03
+      set vort_damp=0.04
    endif
+else if ($hord == "6") then
+   if ($adv == "1") then
+      set vort_damp=0
+   else
+      set vort_damp=0.04
+   endif
+
 else
-   set vort_damp=0.0
-   set do_vort_damp=.false.
+   set vort_damp=0
 endif
 
 ##################################################################################
@@ -71,8 +76,15 @@ else
   set dgflag=".false."
 endif
 
+if ($vort_damp == "0") then
+  set OUTDIR="${GRID}.${MEMO}.g$gtype.$dgname.adv$adv.hord$hord"
+  set do_vort_damp=.false.
+else
+  set OUTDIR="${GRID}.${MEMO}.g$gtype.$dgname.adv$adv.hord$hord.vd$vort_damp"
+  set do_vort_damp=.true.
+endif
+
 # directory structure
-set OUTDIR="${GRID}.${MEMO}.g$gtype.$dgname.adv$adv.hord$hord"
 set WORKDIR =  ${SCRATCHROOT}/${RELEASE}/${OUTDIR}
 #set executable = ${BUILD_AREA}/Build/bin/SOLO_${TYPE}.${COMP}.${MODE}.x
 set executable = ${BUILD_AREA}/Build/bin/SOLO_${TYPE}.${COMP}.${MODE}.${EXE}
