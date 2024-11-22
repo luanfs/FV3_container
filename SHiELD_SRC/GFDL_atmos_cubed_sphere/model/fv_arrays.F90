@@ -2061,13 +2061,13 @@ contains
 
     allocate ( Atm%gridstruct% dxa_cs(isd_2d:ied_2d ) ) ! Cell Centered
     allocate ( Atm%gridstruct%rdxa_cs(isd_2d:ied_2d ) ) ! Cell Centered
-    allocate ( Atm%gridstruct% dya_cs(isd_2d:ied_2d ) ) ! Cell Centered
-    allocate ( Atm%gridstruct%rdya_cs(isd_2d:ied_2d ) ) ! Cell Centered
+    allocate ( Atm%gridstruct% dya_cs(jsd_2d:jed_2d ) ) ! Cell Centered
+    allocate ( Atm%gridstruct%rdya_cs(jsd_2d:jed_2d ) ) ! Cell Centered
  
     allocate ( Atm%gridstruct% dx_cs(isd_2d:ied_2d+1 ) ) ! Corner Centered
     allocate ( Atm%gridstruct%rdx_cs(isd_2d:ied_2d+1 ) ) ! Corner Centered
-    allocate ( Atm%gridstruct% dy_cs(isd_2d:ied_2d+1 ) ) ! Corner Centered
-    allocate ( Atm%gridstruct%rdy_cs(isd_2d:ied_2d+1 ) ) ! Corner Centered
+    allocate ( Atm%gridstruct% dy_cs(jsd_2d:jed_2d+1 ) ) ! Corner Centered
+    allocate ( Atm%gridstruct%rdy_cs(jsd_2d:jed_2d+1 ) ) ! Corner Centered
  
 
     allocate ( Atm%gridstruct% metricterm_a(isd_2d:ied_2d  ,  jsd_2d:jed_2d  ) )
