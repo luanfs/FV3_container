@@ -10,13 +10,13 @@ import math
 
 graphdir='/scratch/cimes/ls9640/graphs_solo_sw/'
 datadir='/scratch/cimes/ls9640/solo_sw/'
-#graphdir='/gpfs/f5/scratch/Luan.Santos/gfdl_w/graphs_solo_sw/'
-#datadir='/gpfs/f5/scratch/Luan.Santos/gfdl_w/solo_sw/'
-figformat='png'
+graphdir='/gpfs/f5/scratch/Luan.Santos/gfdl_w/graphs_solo_sw/'
+datadir='/gpfs/f5/scratch/Luan.Santos/gfdl_w/solo_sw/'
+figformat='eps'
 
 #--------------------------------------------------------------------------------------------------------
 # test case
-tc = -6
+tc = -5
 
 # 1d advection scheme
 hords = (0,8)
@@ -40,7 +40,7 @@ mfs = (1,1,1,1)
 
 # values of N
 Ns = (48, 96, 192, 384, 768)
-Ns = (48, 96, 192, 384)
+#Ns = (48, 96, 192, 384)
 #Ns = (48, 96, 192, )
 #Ns = (96, 192, 384, 768)
 #Ns = (48, 96, )
@@ -265,8 +265,8 @@ for l in range(0, len(errors)):
 
          # adv name
          if adv==1:
-           advname = 'PL'
-           advname = 'FV3'
+           advname = 'PL07'
+           #advname = 'FV3'
          elif adv==2:
            advname = 'LT2'
            #advname = 'MOD'
@@ -308,10 +308,12 @@ for l in range(0, len(errors)):
     ax.set_ylim(emin,emax)
     ax.tick_params(axis='x', labelsize=15)
     ax.tick_params(axis='y', labelsize=14)
-    ax.set_title(names[l] + " error - "+gname, fontsize=14)
+    #ax.set_title(names[l] + " error - "+gname, fontsize=14)
+    ax.set_title(names[l] + r" relative error for $\phi$", fontsize=14)
+
     ax.legend(fontsize=12)
     ax.grid(True, which="both")
- 
+    plt.tight_layout()
     filename = graphdir+enames[l]+"error_tc"+str(tc)+'_alpha'+str(alpha)
     #plt.savefig(filename+'.'+figformat, format=figformat)
     plt.savefig(filename+'.'+gname+'.'+figformat, format=figformat)

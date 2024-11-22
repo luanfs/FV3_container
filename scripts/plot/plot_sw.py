@@ -16,15 +16,14 @@ graphdir = '/gpfs/f5/scratch/Luan.Santos/gfdl_w/graphs_solo_sw/'
 
 #----------------------------------------------------------------------------------------------
 #simulation parameters
-N=96
+N=192
 Tf=100
 gtype = 0
 hords = (8,)
 advs  = (1,2)
 testname='modon'
-alpha=0
 dg='dg1'
-basename= "C"+str(N)+".sw."+testname+".alpha"+str(alpha)+".g"+str(gtype)+"."+str(dg)
+basename= "C"+str(N)+".sw."+testname+".g"+str(gtype)+"."+str(dg)
 #----------------------------------------------------------------------------------------------
 
 
@@ -145,12 +144,13 @@ vort = np.zeros((N,N,6,nplots+1,len(advs)))
 
 # This loop over tiles computes the maximum errors
 time = 0  
-tgap=5
+tgap=1
 #nplots = 100
 for t in range(0,nplots+1,tgap):
+    print(t)
     for k, filepath in enumerate(filepaths):
-        #print(time, k, filepath)
         for tile in range(0,6):
+            print(time, k, filepath, tile)
             # Files to be opened
             atmos_file = filepath+"atmos_daily.tile"+str(tile+1)+".nc"
             grid_file  = filepath+"grid_spec.tile"+str(tile+1)+".nc"
@@ -172,10 +172,11 @@ for t in range(0,nplots+1,tgap):
 
 
     # time update
-    time = time + dtplot 
+    time = time + tgap*dtplot 
 
 # plot
 time = 0  
+dif_h, dif_u, dif_v = np.zeros(nplots+1), np.zeros(nplots+1), np.zeros(nplots+1)
 for t in range(0,nplots+1,tgap):
     ##############################################################################################
     fref = 5000
@@ -191,20 +192,78 @@ for t in range(0,nplots+1,tgap):
     field='h'
     title = field+'_'+testname+'_t'+str(t)+'_'+field+'_'+basename+'.adv'+str(adv)+'.hord'+str(hord)
     filename = graphdir+title
-    plot_scalarfield(field_adv1, title, filename, filepaths[0], 'seismic', fmin, fmax)
+    #plot_scalarfield(field_adv1, title, filename, filepaths[0], 'seismic', fmin, fmax)
 
     adv=2
     field='h'
     title = field+'_'+testname+'_t'+str(t)+'_'+field+'_'+basename+'.adv'+str(adv)+'.hord'+str(hord)
     filename = graphdir+title
-    plot_scalarfield(field_adv2, title, filename, filepaths[0], 'seismic', fmin, fmax)
+    #plot_scalarfield(field_adv2, title, filename, filepaths[0], 'seismic', fmin, fmax)
 
-    diff = (field_adv1-field_adv2)/(field_adv1+fref)
-    diffabs = max(abs(np.amin(diff)), np.amax(diff))
+    hdiff = (field_adv1-field_adv2)#/(field_adv1+fref)
+    #hdiffabs = max(abs(np.amin(hdiff)), np.amax(hdiff))
+    dif_h[t] = np.amax(abs(hdiff))/np.amax(abs(field_adv1+fref))
     #plot_scalarfield(diff, title, filename, filepaths[0], 'seismic', -diffabs, diffabs)
     ##############################################################################################
 
     ##############################################################################################
+    fref = 0
+    field_adv1 = u[:,:,:,t,0]-fref
+    field_adv2 = u[:,:,:,t,1]-fref
+
+    fmin = min(np.amin(field_adv1), np.amin(field_adv2))
+    fmax = max(np.amax(field_adv1), np.amax(field_adv2))
+    fabs = max(abs(fmin),abs(fmax))
+    fmin, fmax = -fabs, fabs
+
+    adv=1
+    field='u'
+    title = field+'_'+testname+'_t'+str(t)+'_'+field+'_'+basename+'.adv'+str(adv)+'.hord'+str(hord)
+    filename = graphdir+title
+    #plot_scalarfield(field_adv1, title, filename, filepaths[0], 'seismic', fmin, fmax)
+
+    adv=2
+    field='u'
+    title = field+'_'+testname+'_t'+str(t)+'_'+field+'_'+basename+'.adv'+str(adv)+'.hord'+str(hord)
+    filename = graphdir+title
+    #plot_scalarfield(field_adv2, title, filename, filepaths[0], 'seismic', fmin, fmax)
+
+    udiff = (field_adv1-field_adv2)#/(field_adv1+fref)
+    dif_u[t] = np.amax(abs(udiff))/np.amax(abs(field_adv1+fref))
+    #plot_scalarfield(diff, title, filename, filepaths[0], 'seismic', -diffabs, diffabs)
+    ##############################################################################################
+
+    ##############################################################################################
+    fref = 0
+    field_adv1 = v[:,:,:,t,0]-fref
+    field_adv2 = v[:,:,:,t,1]-fref
+
+    fmin = min(np.amin(field_adv1), np.amin(field_adv2))
+    fmax = max(np.amax(field_adv1), np.amax(field_adv2))
+    fabs = max(abs(fmin),abs(fmax))
+    fmin, fmax = -fabs, fabs
+
+    adv=1
+    field='v'
+    title = field+'_'+testname+'_t'+str(t)+'_'+field+'_'+basename+'.adv'+str(adv)+'.hord'+str(hord)
+    filename = graphdir+title
+    #plot_scalarfield(field_adv1, title, filename, filepaths[0], 'seismic', fmin, fmax)
+
+    adv=2
+    field='v'
+    title = field+'_'+testname+'_t'+str(t)+'_'+field+'_'+basename+'.adv'+str(adv)+'.hord'+str(hord)
+    filename = graphdir+title
+    #plot_scalarfield(field_adv2, title, filename, filepaths[0], 'seismic', fmin, fmax)
+
+    vdiff = (field_adv1-field_adv2)#/(field_adv1+fref)
+    dif_v[t] = np.amax(abs(vdiff))/np.amax(abs(field_adv1+fref))
+    #plot_scalarfield(diff, title, filename, filepaths[0], 'seismic', -diffabs, diffabs)
+    ##############################################################################################
+
+
+    print(t, np.amax(abs(dif_h[t])), np.amax(abs(dif_u[t])), np.amax(abs(dif_v[t])))
+    ##############################################################################################
+
     fref = 0
     field_adv1 = vort[:,:,:,t,0]-fref
     field_adv2 = vort[:,:,:,t,1]-fref
@@ -219,18 +278,37 @@ for t in range(0,nplots+1,tgap):
     field='vort'
     title = field+'_'+testname+'_t'+str(t)+'_'+field+'_'+basename+'.adv'+str(adv)+'.hord'+str(hord)
     filename = graphdir+title
-    plot_scalarfield(field_adv1, title, filename, filepaths[0], 'seismic', fmin, fmax)
+    #plot_scalarfield(field_adv1, title, filename, filepaths[0], 'seismic', fmin, fmax)
 
     adv=2
     field='vort'
     title = field+'_'+testname+'_t'+str(t)+'_'+field+'_'+basename+'.adv'+str(adv)+'.hord'+str(hord)
     filename = graphdir+title
-    plot_scalarfield(field_adv2, title, filename, filepaths[0], 'seismic', fmin, fmax)
+    #plot_scalarfield(field_adv2, title, filename, filepaths[0], 'seismic', fmin, fmax)
     ##############################################################################################
 
 
     # time update
     time = time + dtplot 
 
-    print(t, diffabs)
 
+#times = np.linspace(0,Tf,nplots+1)
+
+#print(times)
+CB_color_cycle = ['#377eb8', '#ff7f00', '#4daf4a',
+                  '#f781bf', '#a65628', '#984ea3',
+                  '#999999', '#e41a1c', '#dede00']
+ax = plt.gca()
+ax.semilogy(times, dif_h[1:], color=CB_color_cycle[0], label='$h$')
+ax.semilogy(times, dif_u[1:], color=CB_color_cycle[1], label='$u$')
+ax.semilogy(times, dif_v[1:], color=CB_color_cycle[2], label='$v$')
+ax.set_xlabel('Time (days)', fontsize=14)
+ax.set_ylabel('Error', fontsize=14)
+ax.tick_params(axis='x', labelsize=14)
+ax.tick_params(axis='y', labelsize=14)
+ax.legend(fontsize=12)
+ax.grid(True, which="both")
+ax.set_title('Colliding modons - '+gname+ ', N='+str(N)+'\n' \
+        'Relative difference using hord='+str(hord), fontsize=14)
+plt.savefig(graphdir+basename+'_C'+str(N)+'_errors_'+gname+'.png', format='png')
+plt.close()

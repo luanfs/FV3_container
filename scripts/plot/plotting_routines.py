@@ -42,10 +42,10 @@ def plot_scalarfield(q, map_projection, title, filename, filepath, colormap, qmi
     #ax.gridlines(draw_labels=True)
     #ax.xlabel_style = {'size': 18}
     #ax.ylabel_style = {'size': 18}
-    gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
-                      linewidth=1, color='gray', alpha=0.5, linestyle='--')
-    gl.xlabel_style = {'size': 19, 'color': 'black'}
-    gl.ylabel_style = {'size': 19, 'color': 'black'}
+    #gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
+    #                  linewidth=1, color='gray', alpha=0.5, linestyle='--')
+    #gl.xlabel_style = {'size': 19, 'color': 'black'}
+    #gl.ylabel_style = {'size': 19, 'color': 'black'}
 
  
     # Color of each cubed panel
@@ -54,10 +54,11 @@ def plot_scalarfield(q, map_projection, title, filename, filepath, colormap, qmi
     # plot for each tile
     for tile in range(0,6):
         # Grid file to be opened
-        grid_file  = filepath+"grid_spec.tile"+str(tile+1)+".nc"
+        grid_file  = filepath+"/rundir/grid_spec.tile"+str(tile+1)+".nc"
+        print('plotting tile ', tile)
 
         # Load the file
-        grid = xr.open_dataset(grid_file , decode_times=False, chunks={'time': 5}).squeeze()
+        grid = xr.open_dataset(grid_file , decode_times=False)
 
         # Get grid
         lon = grid['grid_lon']
@@ -104,8 +105,8 @@ def plot_scalarfield(q, map_projection, title, filename, filepath, colormap, qmi
     # gaussian
     #cax,kw = colorbar.make_axes(ax,orientation='horizontal' , fraction=0.046, pad=0.04, format='%.0e')
     # cilinder
-    cax,kw = colorbar.make_axes(ax,orientation='horizontal' , fraction=0.046, pad=0.04, format='%.1e')
-    #cax,kw = colorbar.make_axes(ax,orientation='horizontal' , fraction=0.09, pad=0.04, shrink=0.9, format='%.0e')
+    #cax,kw = colorbar.make_axes(ax,orientation='horizontal' , fraction=0.046, pad=0.04, format='%.1e')
+    cax,kw = colorbar.make_axes(ax,orientation='vertical' , fraction=0.09, pad=0.04, shrink=0.9, format='%.0e')
 
     cb=plt.colorbar(im, cax=cax, extend='both',**kw)
 

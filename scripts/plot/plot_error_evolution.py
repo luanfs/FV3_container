@@ -2,11 +2,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os.path
 
-graphdir='/scratch/cimes/ls9640/graphs_solo_sw/'
-datadir='/scratch/cimes/ls9640/solo_sw/'
-#graphdir='/gpfs/f5/scratch/Luan.Santos/gfdl_w/graphs_solo_sw/'
-#datadir='/gpfs/f5/scratch/Luan.Santos/gfdl_w/solo_sw/'
-figformat='png'
+#graphdir='/scratch/cimes/ls9640/graphs_solo_sw/'
+#datadir='/scratch/cimes/ls9640/solo_sw/'
+graphdir='/gpfs/f5/scratch/Luan.Santos/gfdl_w/graphs_solo_sw/'
+datadir='/gpfs/f5/scratch/Luan.Santos/gfdl_w/solo_sw/'
+figformat='eps'
 
 #--------------------------------------------------------------------------------------------------------
 # test case
@@ -14,8 +14,8 @@ tc = -3
 
 # value of N
 #N = 192
-N = 384
-#N = 768
+#N = 384
+N = 768
 #N = 48
 #N = 96
 
@@ -118,8 +118,8 @@ for g in range(0, len(gtypes)):
 
        # adv name
        if adv==1:
-         advname = 'PL'
-         advname = 'FV3'
+         advname = 'PL07'
+         #advname = 'FV3'
        elif adv==2:
          advname = 'LT2'
          #advname = 'MOD'
@@ -200,7 +200,9 @@ for l in range(0, len(errors)):
     ax.set_ylim(emin, emax)
     ax.legend(fontsize=12)
     ax.grid(True, which="both")
-    ax.set_title(names[l]+' error evolution for $\\phi$ on the '+gname+' grid', fontsize=14)
-    plt.savefig(graphdir+'tc'+str(tc)+'_C'+str(N)+'_'+etitle[l]+'_errors_'+gname+'.png', format='png')
+    plt.tight_layout()
+    #ax.set_title(names[l]+' error evolution for $\phi$ on the '+gname+' grid', fontsize=14)
+    ax.set_title(names[l]+r' error evolution for $\phi$ - $N=768$ (13km)', fontsize=14)
+    plt.savefig(graphdir+'tc'+str(tc)+'_C'+str(N)+'_'+etitle[l]+'_errors_'+gname+'.'+figformat, format=figformat)
     plt.close()
 

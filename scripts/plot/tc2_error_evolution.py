@@ -18,17 +18,21 @@ N = 96
 
 # advection scheme
 hords = (5,5,8,8,5)
+hords = (5,5,5)
 
 #2d adv scheme
 advs = (1,2,1,2,2)
+advs = (2,1,2)
 
 #grid type 0-equiedge; 2-equiangular
 gtypes = (0, 2)
 gtypes = (0,)
+#gtypes = (2,)
 
 
 #vort damp
 vds = (0,0.04,0,0,0)
+vds = (0,0,0.04)
 
 #duogrid scheme
 dg = 1
@@ -107,6 +111,7 @@ colors = ('orange', 'blue', 'orange', 'blue', 'blue')
 #colors = ('lightgreen','lightblue','darkgreen', 'darkblue', )
 #colors = ('darkgreen', 'darkblue', )
 lines_style = ('solid','solid','dashed','dashed','dotted')
+lines_style = ('dashed','solid','solid','dotted')
 
 for l in range(0, len(errors)):
   error = errors[l]
@@ -134,7 +139,7 @@ for l in range(0, len(errors)):
 
         Nsteps = np.shape(e)[0]
         time = np.linspace(0,Tf,Nsteps+1)[1:]
-        gap=20
+        gap=10
         ax.semilogy(time[0:Nsteps:gap], e[0:Nsteps:gap], linestyle=ls, color=Color, label=scheme_label)
 
      ax.set_xlabel('Time (days)', fontsize=14)
@@ -144,6 +149,7 @@ for l in range(0, len(errors)):
      ax.set_ylim(emin, emax)
      ax.legend(fontsize=12)
      ax.grid(True, which="both")
-     ax.set_title(names[l]+' error evolution for $h$ on the '+gname+' grid', fontsize=14)
+     ax.set_title('Steady geostrophic flow - N='+str(N)+'\n'\
+     +names[l]+' error evolution for $h$ on the '+gname+' grid', fontsize=14)
      plt.savefig(graphdir+basename+'_C'+str(N)+'_'+etitle[l]+'_errors_'+gname+'.png', format='png')
      plt.close()
