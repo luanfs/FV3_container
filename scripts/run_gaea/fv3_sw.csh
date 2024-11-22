@@ -4,7 +4,7 @@
 #SBATCH --partition=batch
 #SBATCH --qos=urgent
 #SBATCH --account=gfdl_w
-#SBATCH --time=0:30:00
+#SBATCH --time=1:30:00
 #SBATCH --cluster=c5
 #SBATCH --nodes=6
 
@@ -248,7 +248,7 @@ cat >! input.nml <<EOF
 
  &fms_nml
        clock_grain = 'ROUTINE',
-       domains_stack_size = 160000000,
+       domains_stack_size = 2000000000,
        print_memory_usage = .false.
 /
 
