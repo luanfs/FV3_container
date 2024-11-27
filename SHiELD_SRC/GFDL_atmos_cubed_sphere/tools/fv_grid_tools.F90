@@ -945,11 +945,11 @@ if (.not. Atm%flagstruct%duogrid)             call mpp_update_domains( agrid, At
          allocate(y_a(jsd:jed))
  
          do i = isd, ied+1
-            x_b(i) = -aref + dxcube*(i-is)
+            x_b(i) = -aref + dxcube*(i-1)
          enddo
 
          do j = jsd, jed+1
-            y_b(j) = -aref + dycube*(j-js)
+            y_b(j) = -aref + dycube*(j-1)
          enddo
 
          do i = isd, ied
