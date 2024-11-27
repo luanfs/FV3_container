@@ -262,7 +262,7 @@ module fv_arrays_mod
         logical :: rmp_ne = .false.
 
         !--- k2e rmp parameter
-        integer :: k2e_nord = 2 !--- WATCH FOR CONSISTENCY WITH GLOBAL_GRID
+        integer :: k2e_nord = 4 !--- WATCH FOR CONSISTENCY WITH GLOBAL_GRID
         integer, dimension(:,:), allocatable :: k2e_loc
         real(kind=R_GRID), dimension(:,:,:), allocatable :: k2e_coef
         integer, dimension(:,:), allocatable :: k2e_loc_b
