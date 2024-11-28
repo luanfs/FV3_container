@@ -9904,6 +9904,7 @@ subroutine calc_l1_norm(l1norm, field, bd, gridstruct, istag, jstag)
             l1_norms(i) = l1_norm(1)
          endif
       enddo
+      l1_norm(1) = sum(l1_norms)
       deallocate(l1_norms)
 
       ! send the norm to other processes
