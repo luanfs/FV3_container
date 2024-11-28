@@ -77,7 +77,7 @@ module duogrid_mod
     module procedure ext_scalar_4d
   end interface ext_scalar
 
-  integer :: interporder = 1 !order is interporder+1
+  integer :: interporder = 3 !order is interporder+1
   logical :: laginter = .true. ! use the laginterp function
 
 contains
