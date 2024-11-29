@@ -10,7 +10,7 @@ Steps to run the container:
 # Compilation
 Steps to compile the code in the container:
  1) Change the directory to build: root@dbdb48866381:/# cd SHiELD_build/Build/
- 2) Compile the code  (it should take a while): root@dbdb48866381:/SHiELD_build/Build# ./COMPILE solo sw debug gnu 64bit cleanall
+ 2) Compile the code  (it should take a while): root@dbdb48866381:/SHiELD_build/Build# ./COMPILE solo sw repro gnu 64bit cleanall
  3) Exit the container and save its image: $docker commit dbdb48866381 sw
 
 # Running a shallow-water or advection simulation

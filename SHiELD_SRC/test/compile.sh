@@ -9,7 +9,7 @@ fi
 COMP="$1"
 
 cd ../../SHiELD_build/Build
-./COMPILE solo sw $COMP gnu 64bit clean
+./COMPILE solo sw $COMP gnu 64bit noclean
 
 # Move the log file to test dir
 mv build_solo_sw.$COMP.64bit.gnu.out ../../SHiELD_SRC/test/build_solo_sw.$COMP.64bit.gnu.out
