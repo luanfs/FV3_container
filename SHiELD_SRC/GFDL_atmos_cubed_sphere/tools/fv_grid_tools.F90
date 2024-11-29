@@ -1020,32 +1020,36 @@ if (.not. Atm%flagstruct%duogrid)             call mpp_update_domains( agrid, At
  
          ! compute metric term
          !A grid
-         do i = isd, ied
-            do j = jsd, jed
-               call metricterm(Atm%flagstruct%grid_type, line_a(i), line_a(j), mt_a(i,j), radius)
+         do j = jsd, jed
+            do i = isd, ied
+               !call metricterm(Atm%flagstruct%grid_type, line_a(i), line_a(j), mt_a(i,j), radius)
+               call metricterm(Atm%flagstruct%grid_type, x_a(i), y_a(j), mt_a(i,j), radius)
                rmt_a(i,j) = 1.d0/mt_a(i,j)
             enddo
          enddo
 
          !B grid
-         do i = isd, ied+1
-            do j = jsd, jed+1
-               call metricterm(Atm%flagstruct%grid_type, line_b(i), line_b(j), mt_b(i,j), radius)
+         do j = jsd, jed+1
+            do i = isd, ied+1
+               !call metricterm(Atm%flagstruct%grid_type, line_b(i), line_b(j), mt_b(i,j), radius)
+               call metricterm(Atm%flagstruct%grid_type, x_b(i), y_b(j), mt_b(i,j), radius)
                rmt_b(i,j) = 1.d0/mt_b(i,j)
             enddo
          enddo
 
          !C grid
-         do i = isd, ied+1
-            do j = jsd, jed
-               call metricterm(Atm%flagstruct%grid_type, line_b(i), line_a(j), mt_c(i,j), radius)
+         do j = jsd, jed
+            do i = isd, ied+1
+               !call metricterm(Atm%flagstruct%grid_type, line_b(i), line_a(j), mt_c(i,j), radius)
+               call metricterm(Atm%flagstruct%grid_type, x_b(i), y_a(j), mt_c(i,j), radius)
             enddo
          enddo
 
          !D grid
-         do i = isd, ied
-            do j = jsd, jed+1
-               call metricterm(Atm%flagstruct%grid_type, line_a(i), line_b(j), mt_d(i,j), radius)
+         do j = jsd, jed+1
+            do i = isd, ied
+               !call metricterm(Atm%flagstruct%grid_type, line_a(i), line_b(j), mt_d(i,j), radius)
+               call metricterm(Atm%flagstruct%grid_type, x_a(i), y_b(j), mt_d(i,j), radius)
             enddo
          enddo
 
@@ -1087,9 +1091,10 @@ if (.not. Atm%flagstruct%duogrid)             call mpp_update_domains( agrid, At
 !      stretched_grid = .false.
 
        !B grid
-       do i = isd, ied+1
-          do j = jsd, jed+1
-             call tgvector_norms(Atm%flagstruct%grid_type, line_b(i), line_b(j),&
+       do j = jsd, jed+1
+          do i = isd, ied+1
+             !call tgvector_norms(Atm%flagstruct%grid_type, line_b(i), line_b(j),&
+             call tgvector_norms(Atm%flagstruct%grid_type, x_b(i), y_b(j),&
              Atm%gridstruct%norm_tgx_b(i,j), Atm%gridstruct%norm_tgy_b(i,j), radius)
              Atm%gridstruct%rnorm_tgx_b(i,j) = 1.d0/Atm%gridstruct%norm_tgx_b(i,j)
              Atm%gridstruct%rnorm_tgy_b(i,j) = 1.d0/Atm%gridstruct%norm_tgy_b(i,j)
@@ -1098,9 +1103,10 @@ if (.not. Atm%flagstruct%duogrid)             call mpp_update_domains( agrid, At
 
 
        !C grid
-       do i = isd, ied+1
-          do j = jsd, jed
-             call tgvector_norms(Atm%flagstruct%grid_type, line_b(i), line_a(j),&
+       do j = jsd, jed
+          do i = isd, ied+1
+             !call tgvector_norms(Atm%flagstruct%grid_type, line_b(i), line_a(j),&
+             call tgvector_norms(Atm%flagstruct%grid_type, x_b(i), y_a(j),&
              Atm%gridstruct%norm_tgx_c(i,j), Atm%gridstruct%norm_tgy_c(i,j), radius)
              Atm%gridstruct%rnorm_tgx_c(i,j) = 1.d0/Atm%gridstruct%norm_tgx_c(i,j)
              Atm%gridstruct%rnorm_tgy_c(i,j) = 1.d0/Atm%gridstruct%norm_tgy_c(i,j)
@@ -1108,9 +1114,10 @@ if (.not. Atm%flagstruct%duogrid)             call mpp_update_domains( agrid, At
        enddo
 
        !D grid
-       do i = isd, ied
-          do j = jsd, jed+1
-             call tgvector_norms(Atm%flagstruct%grid_type, line_a(i), line_b(j),&
+       do j = jsd, jed+1
+          do i = isd, ied
+             !call tgvector_norms(Atm%flagstruct%grid_type, line_a(i), line_b(j),&
+             call tgvector_norms(Atm%flagstruct%grid_type, x_a(i), y_b(j),&
              Atm%gridstruct%norm_tgx_d(i,j), Atm%gridstruct%norm_tgy_d(i,j), radius)
              Atm%gridstruct%rnorm_tgx_d(i,j) = 1.d0/Atm%gridstruct%norm_tgx_d(i,j)
              Atm%gridstruct%rnorm_tgy_d(i,j) = 1.d0/Atm%gridstruct%norm_tgy_d(i,j)
