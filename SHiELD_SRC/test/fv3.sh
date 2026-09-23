@@ -144,7 +144,7 @@ npz="1" #Shallow water
 layout_x="1"
 layout_y="1"
 io_layout="1,1" #Want to increase this in a production run??
-nthreads="2"
+nthreads="1"
 
 # set variables in input.nml for initial run
 na_init=0 # TRY 1
@@ -294,7 +294,7 @@ cat > input.nml <<EOF
        seconds = $seconds
        dt_atmos = $dt_atmos
        current_time =  $curr_date
-       atmos_nthreads = 4
+       atmos_nthreads = 1
        use_hyper_thread = .true.
 /
 
