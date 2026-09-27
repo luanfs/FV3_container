@@ -212,6 +212,7 @@ contains
 
     real :: rax(bd%is:bd%ie,bd%jsd:bd%jed,npz)
     real :: ray(bd%isd:bd%ied,bd%js:bd%je,npz)
+    real :: div_courant(bd%isd:bd%ied,bd%jsd:bd%jed,npz)
 
 ! ----   For external mode:
     real divg2(bd%is:bd%ie+1,bd%js:bd%je+1)
@@ -693,7 +694,8 @@ endif
                         if(duogrid        .and. flagstruct%nord > 0) call ext_scalar(divgd, gridstruct%dg, bd, domain, 1,1)
 
                         if (.not. duogrid)   call complete_group_halo_update(i_pack(9), domain)
-                        if (duogrid)     call ext_vector(uc, vc, gridstruct%dg, bd, domain,gridstruct, flagstruct,1,0,0,1)
+                        if (duogrid) call ext_vector(uc, vc, gridstruct%dg, bd, domain,gridstruct, flagstruct,1,0,0,1)
+                        if (duogrid) call ext_vector(uc_old, vc_old, gridstruct%dg, bd, domain, gridstruct, flagstruct, 1,0,0,1)
 #ifdef SW_DYNAMICS
     endif
 #endif
@@ -785,11 +787,11 @@ endif
 
                                     call timing_on('dsw13')
 !TODO: recheck the omp variables in the subsequent d_swx calls
-!$OMP parallel do default(none) shared(npz,flagstruct,nord_v,pfull,damp_vt,hydrostatic,last_step, &
-!$OMP                                  is,ie,js,je,isd,ied,jsd,jed,omga,delp,gridstruct,npx,npy,  &
+!$OMP parallel do if(.not.(gridstruct%adv_scheme==3 .and. flagstruct%duogrid)) default(none) shared(npz,flagstruct,nord_v,pfull,damp_vt,hydrostatic,last_step, &
+!$OMP                                  is,ie,js,je,isd,ied,jsd,jed,omga,delp,gridstruct,domain,npx,npy,  &
 !$OMP                                  ng,zh,vt,ptc,pt,u,v,w,uc,vc,uc_old,vc_old,ua,va,divgd,mfx,mfy,cx,cy,     &
 !$OMP                                  crx,cry,xfx,yfx,crx_dp2,cry_dp2,xfx_dp2,yfx_dp2,q_con,zvir,sphum,nq,q,dt,bd,rdt,iep1,jep1, &
-!$OMP                                  heat_source,allflux_x, allflux_y,rax,ray,utt,vtt, &
+!$OMP                                  heat_source,allflux_x, allflux_y,rax,ray,div_courant,utt,vtt, &
 !$OMP                                  ubb,vbb,ubbtemp,vbbtemp, &
 !$OMP                                  diss_est,radius,                 &
 !$OMP                          nord_k, nord_w, nord_t, damp_w, damp_t, d2_divg,   &
@@ -901,8 +903,8 @@ endif
                   nq,  q,  k,  npz, flagstruct%inline_q,  dt,  &
                   flagstruct%hord_tr, hord_v, hord_t, hord_p,    &
                   nord_v(k), nord_t,  &
-                  damp_vt(k), damp_t, hydrostatic, gridstruct, flagstruct, bd, &
-                  allflux_x,allflux_y,rax(is,jsd,k),ray(isd,js,k),utt(isd,jsd,k),vtt(isd,jsd,k))
+                  damp_vt(k), damp_t, hydrostatic, gridstruct, flagstruct, bd, domain, &
+                  allflux_x,allflux_y,rax(is,jsd,k),ray(isd,js,k),utt(isd,jsd,k),vtt(isd,jsd,k),div_courant(isd,jsd,k))
 
                   !vc(isd,jsd,k), uc_old(isd,jsd,k), vc_old(isd,jsd,k), dt,  &
        call d_sw3(u(isd,jsd,k),    v(isd,jsd,k),  uc(isd,jsd,k),      &
@@ -1031,7 +1033,7 @@ endif !if duo
 !$OMP                                  is,ie,js,je,isd,ied,jsd,jed,omga,delp,gridstruct,npx,npy,  &
 !$OMP                                  ng,zh,vt,ptc,pt,u,v,w,uc,vc,ua,va,divgd,mfx,mfy,cx,cy,     &
 !$OMP                                  crx,cry,xfx,yfx,crx_dp2,cry_dp2,xfx_dp2,yfx_dp2,q_con,zvir,sphum,nq,q,dt,bd,rdt,iep1,jep1, &
-!$OMP                                  heat_source, diss_est, allflux_x, allflux_y,rax,ray,utt,vtt, &
+!$OMP                                  heat_source, diss_est, allflux_x, allflux_y,rax,ray,utt,vtt,div_courant, &
 !$OMP                                  kee,dw, wkk, ubb, vbb, ubbtemp, vbbtemp, vortfluxx, vortfluxy, &
 !$OMP                          nord_k, nord_w, nord_t, damp_w, damp_t, d2_divg,   &
 !$OMP                          d_con_k,kgb, hord_m, hord_v, hord_t, hord_p, wk, heat_s, diss_e, z_rat)
@@ -1083,7 +1085,7 @@ do k=1,npz
                  damp_w(k), d_con_k(k), hydrostatic, gridstruct, flagstruct, bd, &
                   dw(is,js,k),rax(is,jsd,k),ray(isd,js,k),utt(isd,jsd,k),vtt(isd,jsd,k), &
                   ubb(is,js,k),vbb(is,js,k),kee(isd,jsd,k),wkk(isd,jsd,k), & 
-                  vortfluxx(is,js,k),vortfluxy(is,js,k) )
+                  vortfluxx(is,js,k),vortfluxy(is,js,k),div_courant(isd,jsd,k) )
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! Revisit the vorticity flux averaging
 ! should be applied to have a consistent logic

@@ -25,7 +25,9 @@ module sw_core_mod
  use fv_mp_mod, only: fill_corners, XDir, YDir
  use fv_arrays_mod, only: fv_grid_type, fv_grid_bounds_type, fv_flags_type
  use a2b_edge_mod, only: a2b_ord4
+ use duogrid_mod, only: ext_scalar
  use mpp_mod,            only: mpp_pe
+ use mpp_domains_mod, only: domain2D
 
 #ifdef SW_DYNAMICS
  use test_cases_mod,   only: test_case
@@ -508,8 +510,8 @@ endif
                     nq, q, k, km, inline_q,  &
                    dt, hord_tr, hord_vt, hord_tm, hord_dp,   &
                    nord_v, nord_t, damp_v, &
-                   damp_t, hydrostatic, gridstruct, flagstruct, bd, &
-                   allflux_x, allflux_y, ra_x, ra_y, ut, vt)
+                   damp_t, hydrostatic, gridstruct, flagstruct, bd, domain, &
+                   allflux_x, allflux_y, ra_x, ra_y, ut, vt, div_courant)
 
       integer, intent(IN):: hord_tr, hord_vt, hord_tm, hord_dp
       integer, intent(IN):: nord_v ! vorticity damping
@@ -518,6 +520,7 @@ endif
       real   , intent(IN):: dt
       real,    intent(in):: damp_v, damp_t
       type(fv_grid_bounds_type), intent(IN) :: bd
+      type(domain2D), intent(INOUT) :: domain
       real, intent(INOUT), dimension(bd%isd:bd%ied,  bd%jsd:bd%jed):: delp, pt
       real, intent(INOUT), dimension(bd%isd:      ,  bd%jsd:      ):: w, q_con
       real, intent(INOUT), dimension(bd%isd:bd%ied  ,bd%jsd:bd%jed+1):: vc, vc_old
@@ -541,7 +544,8 @@ endif
       real,intent(out) :: ra_y(bd%isd:bd%ied,bd%js:bd%je)
       real,intent(out) :: ut(bd%isd:bd%ied+1,bd%jsd:bd%jed)
       real,intent(out) :: vt(bd%isd:bd%ied,  bd%jsd:bd%jed+1)
-      type(fv_grid_type), intent(IN), target :: gridstruct
+      real, intent(OUT) :: div_courant(bd%isd:bd%ied,bd%jsd:bd%jed)
+      type(fv_grid_type), intent(INOUT), target :: gridstruct
       type(fv_flags_type), intent(IN), target :: flagstruct
 ! Local:
       logical:: sw_corner, se_corner, ne_corner, nw_corner
@@ -549,6 +553,7 @@ endif
       real ::   fy(bd%is:bd%ie  ,bd%js:bd%je+1)  ! 1-D Y-direction Fluxes
       real :: gx(bd%is:bd%ie+1,bd%js:bd%je  )
       real :: gy(bd%is:bd%ie  ,bd%js:bd%je+1)  ! work Y-dir flux array
+
       real :: ut_old(bd%isd:bd%ied+1,bd%jsd:bd%jed)
       real :: vt_old(bd%isd:bd%ied,  bd%jsd:bd%jed+1)
 
@@ -907,9 +912,20 @@ endif
          enddo
       enddo
 
-      if(gridstruct%adv_scheme==1) then
+      if (gridstruct%adv_scheme==3) then
+         do j=js,je
+            do i=is,ie
+               div_courant(i,j)=(xfx_adv(i+1,j)-xfx_adv(i,j)+yfx_adv(i,j+1)-yfx_adv(i,j))*gridstruct%rarea(i,j)
+            enddo
+         enddo
+
+         if (flagstruct%duogrid) call ext_scalar(div_courant, gridstruct%dg, bd, domain, 0, 0)
+      endif
+
+      if(gridstruct%adv_scheme==1 .or. gridstruct%adv_scheme==3) then
          call fv_tp_2d(delp, crx_adv, cry_adv, npx, npy, hord_dp, fx, fy,  &
-                   xfx_adv,yfx_adv, gridstruct, bd, ra_x, ra_y, flagstruct%lim_fac, nord=nord_v, damp_c=damp_v)
+                   xfx_adv,yfx_adv, gridstruct, bd, ra_x, ra_y, flagstruct%lim_fac, nord=nord_v, damp_c=damp_v, &
+                   advscheme=gridstruct%adv_scheme, div_courant=div_courant)
       else if(gridstruct%adv_scheme==2) then
          call fv_tp_2d(delp, crx_dp2, cry_dp2, npx, npy, hord_dp, fx, fy,  &
                     xfx_dp2,yfx_dp2, gridstruct, bd, ra_x, ra_y, flagstruct%lim_fac, nord=nord_v, damp_c=damp_v, &
@@ -1013,9 +1029,11 @@ endif
                             xfx_adv, yfx_adv, gridstruct, bd, ra_x, ra_y, flagstruct%lim_fac, &
                             mfx=fx, mfy=fy, mass=delp, nord=nord_t, damp_c=damp_t)
          else
-            if(gridstruct%adv_scheme==1) then
+            if(gridstruct%adv_scheme==1 .or. gridstruct%adv_scheme==3) then
                call fv_tp_2d(q(isd,jsd,k,iq), crx_adv, cry_adv, npx, npy, hord_tr, gx, gy, &
-                           xfx_adv, yfx_adv, gridstruct, bd, ra_x, ra_y, flagstruct%lim_fac)
+                           xfx_adv, yfx_adv, gridstruct, bd, ra_x, ra_y, flagstruct%lim_fac, advscheme=gridstruct%adv_scheme, &
+                           div_courant=div_courant)
+
             else if(gridstruct%adv_scheme==2) then
                call fv_tp_2d(q(isd,jsd,k,iq), crx_dp2, cry_dp2, npx, npy, hord_tr, gx, gy, &
                            xfx_dp2, yfx_dp2, gridstruct, bd, ra_x, ra_y, flagstruct%lim_fac, advscheme=gridstruct%adv_scheme)
@@ -1542,7 +1560,7 @@ enddo
                    dt, hord_vt, nord,   &
                     dddmp, d2_bg, d4_bg, damp_w, &
                     d_con, hydrostatic, gridstruct, flagstruct, bd,  &
-                   dw,ra_x,ra_y,ut,vt,ub,vb,ke,wk,vortfluxx,vortfluxy)
+                dw,ra_x,ra_y,ut,vt,ub,vb,ke,wk,vortfluxx,vortfluxy,div_courant)
 
       integer, intent(IN):: hord_vt
       integer, intent(IN):: nord   ! nord=1 divergence damping; (del-4) or 3 (del-8)
@@ -1569,6 +1587,7 @@ enddo
 
       real,intent(INOUT) :: ut(bd%isd:bd%ied+1,bd%jsd:bd%jed)
       real,intent(INOUT) :: vt(bd%isd:bd%ied,  bd%jsd:bd%jed+1)
+      real, intent(IN) :: div_courant(bd%isd:bd%ied,bd%jsd:bd%jed)
 
       real, intent(IN) :: dw(bd%is:bd%ie,bd%js:bd%je) !  w dammping from dsw2
       real,intent(IN) :: ra_x(bd%is:bd%ie,bd%jsd:bd%jed)
@@ -1584,7 +1603,6 @@ enddo
 !---
       logical :: fill_c
       real ::   vort(bd%isd:bd%ied  ,bd%jsd:bd%jed)  ! 1-D Y-direction Fluxes
-
 
       real :: damp, damp2, dd8
       integer :: i,j, is2, ie1, js2, je1, n, nt, n2
@@ -1924,9 +1942,10 @@ endif
    endif
 
    ! This vort is not needed as 'out' but the fluxes are instead
-   if(gridstruct%adv_scheme==1) then
+   if(gridstruct%adv_scheme==1 .or. gridstruct%adv_scheme==3) then
       call fv_tp_2d(vort, crx_adv, cry_adv, npx, npy, hord_vt, vortfluxx, vortfluxy, &
-                  xfx_adv,yfx_adv, gridstruct, bd, ra_x, ra_y, flagstruct%lim_fac)
+                  xfx_adv,yfx_adv, gridstruct, bd, ra_x, ra_y, flagstruct%lim_fac, &
+                 advscheme=gridstruct%adv_scheme, div_courant=div_courant)
    else if(gridstruct%adv_scheme==2) then
       !call fv_tp_2d(vort, crx_adv, cry_adv, npx, npy, hord_vt, vortfluxx, vortfluxy, &
       !            xfx_adv,yfx_adv, gridstruct, bd, ra_x, ra_y, flagstruct%lim_fac)

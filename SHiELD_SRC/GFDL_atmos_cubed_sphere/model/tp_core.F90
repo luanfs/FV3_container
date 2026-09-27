@@ -79,7 +79,7 @@ module tp_core_mod
 contains
 
  subroutine fv_tp_2d(q, crx, cry, npx, npy, hord, fx, fy, xfx, yfx,  &
-                     gridstruct, bd, ra_x, ra_y, lim_fac, mfx, mfy, mass, nord, damp_c, advscheme)
+                     gridstruct, bd, ra_x, ra_y, lim_fac, mfx, mfy, mass, nord, damp_c, advscheme, div_courant)
    type(fv_grid_bounds_type), intent(IN) :: bd
    integer, intent(in):: npx, npy
    integer, intent(in)::hord
@@ -100,6 +100,7 @@ contains
    real, OPTIONAL, intent(in):: mfx(bd%is:bd%ie+1,bd%js:bd%je  )  ! Mass Flux X-Dir
    real, OPTIONAL, intent(in):: mfy(bd%is:bd%ie  ,bd%js:bd%je+1)  ! Mass Flux Y-Dir
    real, OPTIONAL, intent(in):: mass(bd%isd:bd%ied,bd%jsd:bd%jed)
+   real, OPTIONAL, intent(in) :: div_courant(bd%isd:bd%ied,bd%jsd:bd%jed)
    real, OPTIONAL, intent(in):: damp_c
    integer, OPTIONAL, intent(in):: nord
    integer, OPTIONAL, intent(in):: advscheme
@@ -152,7 +153,7 @@ contains
       call copy_corners(q, npx, npy, 2, gridstruct%bounded_domain, bd, &
                          gridstruct%sw_corner, gridstruct%se_corner, gridstruct%nw_corner, gridstruct%ne_corner)
 
-   if(adv_scheme==1) then
+   if(adv_scheme==1 .or. adv_scheme==3) then
       call yppm(fy2, q, cry, ord_in, isd,ied,isd,ied, js,je,jsd,jed, npx,npy, gridstruct%dya, &
                 gridstruct%bounded_domain, gridstruct%grid_type, lim_fac)
    else if(adv_scheme==2) then
@@ -187,6 +188,16 @@ contains
              gridstruct%dxa, gridstruct%bounded_domain, gridstruct%grid_type, lim_fac, mt_a, mt_c)
       !call xppm(fx, q_i, crx(is,js), ord_ou, is,ie,isd,ied, js,je,jsd,jed, npx,npy, &
       !       gridstruct%dxa, gridstruct%bounded_domain, gridstruct%grid_type, lim_fac)
+
+   else if(adv_scheme==3) then
+      do j=js,je
+         do i=isd,ied
+            q_i(i,j) = (q(i,j)*gridstruct%area(i,j) + fyy(i,j)-fyy(i,j+1))/ra_y(i,j) - div_courant(i,j)*q(i,j)
+         enddo
+      enddo
+      call xppm(fx, q_i, crx(is,js), ord_ou, is,ie,isd,ied, js,je,jsd,jed, npx,npy, &
+           gridstruct%dxa, gridstruct%bounded_domain, gridstruct%grid_type, lim_fac)
+
    endif
 
    if (.not. gridstruct%bounded_domain) &
@@ -194,7 +205,7 @@ contains
                        gridstruct%sw_corner, gridstruct%se_corner, gridstruct%nw_corner, gridstruct%ne_corner)
 
 
-   if(adv_scheme==1) then
+   if(adv_scheme==1 .or. adv_scheme==3) then
       call xppm(fx2, q, crx, ord_in, is,ie,isd,ied, jsd,jed,jsd,jed, npx,npy, gridstruct%dxa, &
                 gridstruct%bounded_domain, gridstruct%grid_type, lim_fac)
    else if(adv_scheme==2) then
@@ -202,10 +213,11 @@ contains
                 gridstruct%bounded_domain, gridstruct%grid_type, lim_fac, mt_a, mt_c)
    endif
 
+
    if(adv_scheme==1) then
       do j=jsd,jed
          do i=is,ie+1
-            fx1(i) =  xfx(i,j) * fx2(i,j)
+            fx1(i) = xfx(i,j) * fx2(i,j)
          enddo
          do i=is,ie
             q_j(i,j) = (q(i,j)*gridstruct%area(i,j) + fx1(i)-fx1(i+1))/ra_x(i,j)
@@ -228,6 +240,18 @@ contains
                 gridstruct%bounded_domain, gridstruct%grid_type, lim_fac, mt_a, mt_d)
       !call yppm(fy, q_j, cry, ord_ou, is,ie,isd,ied, js,je,jsd,jed, npx, npy, gridstruct%dya, &
       !          gridstruct%bounded_domain, gridstruct%grid_type, lim_fac)
+
+   else if(adv_scheme==3) then
+      do j=jsd,jed
+         do i=is,ie+1
+            fx1(i) = xfx(i,j) * fx2(i,j)
+         enddo
+         do i=is,ie
+            q_j(i,j) = (q(i,j)*gridstruct%area(i,j) + fx1(i)-fx1(i+1))/ra_x(i,j) - div_courant(i,j)*q(i,j)
+         enddo
+      enddo
+      call yppm(fy, q_j, cry, ord_ou, is,ie,isd,ied, js,je,jsd,jed, npx, npy, gridstruct%dya, &
+                gridstruct%bounded_domain, gridstruct%grid_type, lim_fac)
 
 
    endif
@@ -1538,7 +1562,7 @@ else if (iord==8) then
        al(i) = 0.5*(q1(i-1)+q1(i)) + r3*(dm(i-1)-dm(i))
     enddo
 
-    do i=is1,ie1+1
+    do i=is1,ie1
        xt = 2.*dm(i)
        al(i) = q1(i) - sign(min(abs(xt), abs(al(i  )-q1(i))), xt)
        ar(i) = q1(i) + sign(min(abs(xt), abs(al(i+1)-q1(i))), xt)
@@ -1647,7 +1671,7 @@ else if(jord==8) then
      enddo
   enddo
 
-  do j=js1,je1+1
+  do j=js1,je1
      do i=ifirst,ilast
         xt = 2.*dm(i,j)
         al(i,j) = q(i,j) - sign(min(abs(xt), abs(al(i,j)-q(i,j))),   xt)
